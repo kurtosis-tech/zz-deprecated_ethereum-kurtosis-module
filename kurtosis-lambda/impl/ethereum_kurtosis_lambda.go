@@ -52,11 +52,10 @@ type EthereumKurtosisLambda struct {
 }
 
 type EthereumKurtosisLambdaParams struct {
-	IWantATip bool `json:"iWantATip"`
 }
 
 type EthereumKurtosisLambdaResult struct {
-	Tip string `json:"tip"`
+	ServiceIDs []string `json:"service_ids"`
 }
 
 type AddPeerResponse struct {
@@ -68,7 +67,13 @@ type NodeInfoResponse struct {
 }
 
 type NodeInfo struct {
-	Enode string `json:"enode"`
+	ServiceID services.ServiceID `json:"service_id"`
+	Enode     string             `json:"enode"`
+}
+
+type BootnodeInfo struct {
+	ServiceID services.ServiceID `json:"service_id"`
+	Enr       string             `json:"enr"`
 }
 
 func NewEthereumKurtosisLambda() *EthereumKurtosisLambda {
@@ -87,22 +92,26 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred registering the static files")
 	}
 
-	bootNodeEnr, err := startEthBootnode(networkCtx)
+	bootnodeInfo, err := startEthBootnode(networkCtx)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum Bootnode")
 	}
 
-	var nodesEnode []string
+	service_ids := []string{string(bootnodeInfo.ServiceID)}
+
+	var nodesInfo []*NodeInfo
 	for i := 1; i <= ethNodesQuantity; i++ {
 		serviceID := services.ServiceID(ethServiceIdPrefix + strconv.Itoa(i))
-		enode, err := starEthNodeByBootnode(networkCtx, serviceID, bootNodeEnr, nodesEnode)
+		nodeInfo, err := starEthNodeByBootnode(networkCtx, serviceID, bootnodeInfo.Enr, nodesInfo)
 		if err != nil {
 			return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum Node '%v'", serviceID)
 		}
-		nodesEnode = append(nodesEnode, enode)
+		nodesInfo = append(nodesInfo, nodeInfo)
+		service_ids = append(service_ids, string(nodeInfo.ServiceID))
 	}
 
 	ethereumKurtosisLambdaResult := &EthereumKurtosisLambdaResult{
+		ServiceIDs: service_ids,
 	}
 
 	result, err := json.Marshal(ethereumKurtosisLambdaResult)
@@ -118,18 +127,17 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 // ====================================================================================================
 //                                       Private helper functions
 // ====================================================================================================
-func startEthBootnode(networkCtx *networks.NetworkContext) (string, error) {
+func startEthBootnode(networkCtx *networks.NetworkContext) (*BootnodeInfo, error) {
 	containerCreationConfig := getContainerCreationConfig()
 	runConfigFunc := getEthBootnodeRunConfigFunc()
 
 	serviceCtx, hostPortBindings, err := networkCtx.AddService(bootnodeServiceID, containerCreationConfig, runConfigFunc)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
+		return nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
 	}
 
-
 	if err := networkCtx.WaitForHttpPostEndpointAvailability(bootnodeServiceID, uint32(rpcPort), "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", bootnodeServiceID)
+		return nil, stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", bootnodeServiceID)
 	}
 
 	logrus.Infof("Added Ethereum bootnode service with IP: %v and host port bindings: %+v", serviceCtx.GetIPAddress(), hostPortBindings)
@@ -141,39 +149,42 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (string, error) {
 		cmd,
 	})
 	if err != nil {
-		return "", stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
+		return nil, stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
 	}
 	if exitCode != execCommandSuccessExitCode {
-		return "", stacktrace.NewError("Executing command '%v' returned an failing exit code with logs: %+v", cmd, string(*logOutput))
+		return nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs: %+v", cmd, string(*logOutput))
 	}
 
-	enr := string(*logOutput)
+	bootnodeInfo := &BootnodeInfo{
+		ServiceID: serviceCtx.GetServiceID(),
+		Enr: string(*logOutput),
+	}
 
-	return enr, nil
+	return bootnodeInfo, nil
 }
 
-func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID services.ServiceID, bootnodeEnr string, nodesEnode []string) (string, error) {
+func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID services.ServiceID, bootnodeEnr string, nodesInfo []*NodeInfo) (*NodeInfo, error) {
 	containerCreationConfig := getContainerCreationConfig()
 	runConfigFunc := getEthNodeRunConfigFunc(bootnodeEnr)
 
 	serviceCtx, hostPortBindings, err := networkCtx.AddService(serviceID, containerCreationConfig, runConfigFunc)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred adding the Ethereum node wit service ID %v", serviceID)
+		return nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum nodeInfo wit service ID %v", serviceID)
 	}
 
-	logrus.Infof("Added Ethereum node %v service with host port bindings: %+v ", serviceID, hostPortBindings)
+	logrus.Infof("Added Ethereum nodeInfo %v service with host port bindings: %+v ", serviceID, hostPortBindings)
 
 	if err := networkCtx.WaitForHttpPostEndpointAvailability(serviceID, uint32(rpcPort), "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", serviceID)
+		return nil, stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", serviceID)
 	}
 
-	for _, enode := range nodesEnode {
-		ok, err := AddPeer(serviceCtx.GetIPAddress(), enode)
+	for _, nodeInfo := range nodesInfo {
+		ok, err := AddPeer(serviceCtx.GetIPAddress(), nodeInfo.Enode)
 		if err != nil {
-			return "", stacktrace.Propagate(err, "Failed to call addPeer endpoint to add peer with enode %v", enode)
+			return nil, stacktrace.Propagate(err, "Failed to call addPeer endpoint to add peer with nodeInfo %v", nodeInfo)
 		}
 		if !ok {
-			return "", stacktrace.NewError("addPeer endpoint returned false on service %v, adding peer %v", serviceID, enode)
+			return nil, stacktrace.NewError("addPeer endpoint returned false on service %v, adding peer %v", serviceID, nodeInfo)
 		}
 	}
 
@@ -184,22 +195,27 @@ func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID servic
 		cmd,
 	})
 	if err != nil {
-		return "", stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
+		return nil, stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
 	}
 	if exitCode != execCommandSuccessExitCode {
-		return "", stacktrace.NewError("Executing command returned an failing exit code with logs: %+v", string(*logOutput))
+		return nil, stacktrace.NewError("Executing command returned an failing exit code with logs: %+v", string(*logOutput))
 	}
 
-	if err = validatePeersQuantity(string(*logOutput), serviceID, nodesEnode); err != nil {
-		return "", stacktrace.Propagate(err, "Validate peers error")
+	if err = validatePeersQuantity(string(*logOutput), serviceID, nodesInfo); err != nil {
+		return nil, stacktrace.Propagate(err, "Validate peers error")
 	}
 
 	enode, err := getEnodeAddress(serviceCtx.GetIPAddress())
 	if err != nil {
-		return "", stacktrace.Propagate(err, "Failed to get enode from peer %v", serviceID)
+		return nil, stacktrace.Propagate(err, "Failed to get nodeInfo from peer %v", serviceID)
 	}
 
-	return enode, nil
+	nodeInfo := &NodeInfo{
+		ServiceID: serviceCtx.GetServiceID(),
+		Enode: enode,
+	}
+
+	return nodeInfo, nil
 }
 
 func getContainerCreationConfig() *services.ContainerCreationConfig {
@@ -326,9 +342,9 @@ func AddPeer(ipAddress string, peerEnode string) (bool, error) {
 	return addPeerResponse.Result, nil
 }
 
-func validatePeersQuantity(logString string, serviceID services.ServiceID, nodesEnode []string) error {
+func validatePeersQuantity(logString string, serviceID services.ServiceID, nodesInfo []*NodeInfo) error {
 	peersQuantity := strings.Count(logString, enodePrefix) - strings.Count(logString, handshakeProtocol)
-	validPeersQuantity := len(nodesEnode) + 1
+	validPeersQuantity := len(nodesInfo) + 1
 	if peersQuantity != validPeersQuantity {
 		return stacktrace.NewError("The amount of peers '%v' for node '%v' is not valid, should be '%v?", peersQuantity, serviceID, validPeersQuantity)
 	}
