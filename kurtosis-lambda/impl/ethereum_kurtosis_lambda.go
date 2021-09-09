@@ -55,7 +55,9 @@ type EthereumKurtosisLambdaParams struct {
 }
 
 type EthereumKurtosisLambdaResult struct {
-	ServiceIDs []string `json:"service_ids"`
+	BootnodeServiceID services.ServiceID `json:"bootnode_service_id"`
+	NodeServiceIDs []services.ServiceID `json:"node_service_ids"`
+	StaticFileIDs []services.StaticFileID `json:"static_file_ids"`
 }
 
 type AddPeerResponse struct {
@@ -97,8 +99,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum Bootnode")
 	}
 
-	service_ids := []string{string(bootnodeInfo.ServiceID)}
-
+	var nodeServiceIDs []services.ServiceID
 	var nodesInfo []*NodeInfo
 	for i := 1; i <= ethNodesQuantity; i++ {
 		serviceID := services.ServiceID(ethServiceIdPrefix + strconv.Itoa(i))
@@ -107,11 +108,13 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 			return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum Node '%v'", serviceID)
 		}
 		nodesInfo = append(nodesInfo, nodeInfo)
-		service_ids = append(service_ids, string(nodeInfo.ServiceID))
+		nodeServiceIDs = append(nodeServiceIDs, nodeInfo.ServiceID)
 	}
 
 	ethereumKurtosisLambdaResult := &EthereumKurtosisLambdaResult{
-		ServiceIDs: service_ids,
+		BootnodeServiceID: bootnodeInfo.ServiceID,
+		NodeServiceIDs: nodeServiceIDs,
+		StaticFileIDs: static_files_consts.GetStaticFileIDs(),
 	}
 
 	result, err := json.Marshal(ethereumKurtosisLambdaResult)
