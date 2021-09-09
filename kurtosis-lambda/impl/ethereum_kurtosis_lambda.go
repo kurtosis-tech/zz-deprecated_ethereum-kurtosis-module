@@ -22,40 +22,40 @@ var (
 	}
 )
 
-type ExampleKurtosisLambda struct {
+type EthereumKurtosisLambda struct {
 }
 
-type ExampleKurtosisLambdaParams struct {
+type EthereumKurtosisLambdaParams struct {
 	IWantATip bool `json:"iWantATip"`
 }
 
-type ExampleKurtosisLambdaResult struct {
+type EthereumKurtosisLambdaResult struct {
 	Tip string `json:"tip"`
 }
 
-func NewExampleKurtosisLambda() *ExampleKurtosisLambda {
-	return &ExampleKurtosisLambda{}
+func NewEthereumKurtosisLambda() *EthereumKurtosisLambda {
+	return &EthereumKurtosisLambda{}
 }
 
-func (e ExampleKurtosisLambda) Execute(networkCtx *networks.NetworkContext, serializedParams string) (serializedResult string, resultError error) {
-	logrus.Infof("Example Kurtosis Lambda receives serializedParams '%v'", serializedParams)
+func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, serializedParams string) (serializedResult string, resultError error) {
+	logrus.Infof("Ethereum Kurtosis Lambda receives serializedParams '%v'", serializedParams)
 	serializedParamsBytes := []byte(serializedParams)
-	var params ExampleKurtosisLambdaParams
+	var params EthereumKurtosisLambdaParams
 	if err := json.Unmarshal(serializedParamsBytes, &params); err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred deserializing the Example Kurtosis Lambda serialized params with value '%v'", serializedParams)
+		return "", stacktrace.Propagate(err, "An error occurred deserializing the Ethereum Kurtosis Lambda serialized params with value '%v'", serializedParams)
 	}
 
-	exampleKurtosisLambdaResult := &ExampleKurtosisLambdaResult{
+	ethereumKurtosisLambdaResult := &EthereumKurtosisLambdaResult{
 		Tip: getRandomTip(params.IWantATip),
 	}
 
-	result, err := json.Marshal(exampleKurtosisLambdaResult)
+	result, err := json.Marshal(ethereumKurtosisLambdaResult)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred serializing the Example Kurtosis Lambda Result with value '%+v'", exampleKurtosisLambdaResult)
+		return "", stacktrace.Propagate(err, "An error occurred serializing the Ethereum Kurtosis Lambda Result with value '%+v'", ethereumKurtosisLambdaResult)
 	}
 	stringResult := string(result)
 
-	logrus.Info("Example Kurtosis Lambda executed successfully")
+	logrus.Info("Ethereum Kurtosis Lambda executed successfully")
 	return stringResult, nil
 }
 
@@ -65,7 +65,7 @@ func getRandomTip(shouldGiveAdvice bool) string {
 		rand.Seed(time.Now().Unix())
 		tip = tipsRepository[rand.Intn(len(tipsRepository))]
 	} else {
-		tip = "Kurtosis Lambda Example won't enlighten you today."
+		tip = "Kurtosis Lambda won't enlighten you today."
 	}
 	return tip
 }

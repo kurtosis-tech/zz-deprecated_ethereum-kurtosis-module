@@ -1,4 +1,4 @@
-My Kurtosis Lambda
+Ethereum Kurtosis Lambda
 =====================
 Welcome to your new Kurtosis Lambda! You can use Example Kurtosis Lambda implementation as a pattern to create your own Kurtosis Lambda.
 Quickstart steps:

@@ -11,15 +11,15 @@ const(
 	defaultLogLevel = "info"
 )
 
-type ExampleKurtosisLambdaConfigurator struct{}
+type EthereumKurtosisLambdaConfigurator struct{}
 
-func NewExampleKurtosisLambdaConfigurator() *ExampleKurtosisLambdaConfigurator {
-	return &ExampleKurtosisLambdaConfigurator{}
+func NewEthereumKurtosisLambdaConfigurator() *EthereumKurtosisLambdaConfigurator {
+	return &EthereumKurtosisLambdaConfigurator{}
 }
 
-func (t ExampleKurtosisLambdaConfigurator) ParseParamsAndCreateKurtosisLambda(serializedCustomParamsStr string) (kurtosis_lambda.KurtosisLambda, error) {
+func (t EthereumKurtosisLambdaConfigurator) ParseParamsAndCreateKurtosisLambda(serializedCustomParamsStr string) (kurtosis_lambda.KurtosisLambda, error) {
 	serializedCustomParamsBytes := []byte(serializedCustomParamsStr)
-	var args ExampleKurtosisLambdaArgs
+	var args EthereumKurtosisLambdaArgs
 	if err := json.Unmarshal(serializedCustomParamsBytes, &args); err != nil {
 		return nil, stacktrace.Propagate(err, "An error occurred deserializing the Kurtosis Lambda serialized custom params with value '%v", serializedCustomParamsStr)
 	}
@@ -29,7 +29,7 @@ func (t ExampleKurtosisLambdaConfigurator) ParseParamsAndCreateKurtosisLambda(se
 		return nil, stacktrace.Propagate(err, "An error occurred setting the log level")
 	}
 
-	lambda := NewExampleKurtosisLambda()
+	lambda := NewEthereumKurtosisLambda()
 
 	return lambda, nil
 }
