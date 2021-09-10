@@ -32,9 +32,9 @@ const (
 
 	adminInfoRpcCall = `{"jsonrpc":"2.0","method": "admin_nodeInfo","params":[],"id":67}`
 
-	waitEndpointInitialDelayMilliseconds = 50
+	waitEndpointInitialDelayMilliseconds = 100
 	waitEndpointRetries                  = 30
-	waitEndpointRetriesDelayMilliseconds = 50
+	waitEndpointRetriesDelayMilliseconds = 5
 
 	execCommandSuccessExitCode = 0
 
