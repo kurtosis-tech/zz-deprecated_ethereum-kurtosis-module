@@ -181,7 +181,7 @@ func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID servic
 	}
 
 	for _, nodeInfo := range nodesInfo {
-		ok, err := AddPeer(serviceCtx.GetIPAddress(), nodeInfo.Enode)
+		ok, err := addPeer(serviceCtx.GetIPAddress(), nodeInfo.Enode)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "Failed to call addPeer endpoint to add peer with nodeInfo %v", nodeInfo)
 		}
@@ -332,12 +332,12 @@ func sendRpcCall(ipAddress string, rpcJsonString string, targetStruct interface{
 	}
 }
 
-func AddPeer(ipAddress string, peerEnode string) (bool, error) {
+func addPeer(ipAddress string, peerEnode string) (bool, error) {
 	adminAddPeerRpcCall := fmt.Sprintf(`{"jsonrpc":"2.0", "method": "admin_addPeer", "params": ["%v"], "id":70}`, peerEnode)
 	logrus.Infof("Admin add peer rpc call: %v", adminAddPeerRpcCall)
 	addPeerResponse := new(AddPeerResponse)
 	err := sendRpcCall(ipAddress, adminAddPeerRpcCall, addPeerResponse)
-	logrus.Infof("AddPeer response: %+v", addPeerResponse)
+	logrus.Infof("addPeer response: %+v", addPeerResponse)
 	if err != nil {
 		return false, stacktrace.Propagate(err, "Failed to send addPeer RPC call for enode %v", peerEnode)
 	}
