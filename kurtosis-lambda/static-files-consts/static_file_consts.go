@@ -29,12 +29,3 @@ var StaticFileFilepaths = map[services.StaticFileID]string{
 	PasswordStaticFileID: path.Join(staticFilesDirpathOnTestsuiteContainer, passwordStaticFileName),
 	SignerKeystoreFileID: path.Join(staticFilesDirpathOnTestsuiteContainer, signerKeystoreFileName),
 }
-
-func GetStaticFileIDs() (staticFileIDs []services.StaticFileID) {
-	for key, value := range StaticFiles {
-		if value {
-			staticFileIDs = append(staticFileIDs, key)
-		}
-	}
-	return staticFileIDs
-}
