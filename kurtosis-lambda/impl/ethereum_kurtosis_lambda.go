@@ -57,7 +57,6 @@ type EthereumKurtosisLambdaParams struct {
 type EthereumKurtosisLambdaResult struct {
 	BootnodeServiceID          services.ServiceID      `json:"bootnode_service_id"`
 	NodeServiceIDs             []services.ServiceID    `json:"node_service_ids"`
-	StaticFileIDs              []services.StaticFileID `json:"static_file_ids"`
 	GenesisStaticFileID        services.StaticFileID   `json:"genesis_static_file_id"`
 	PasswordStaticFileID       services.StaticFileID   `json:"password_static_file_id"`
 	SignerKeystoreStaticFileID services.StaticFileID   `json:"signer_keystore_static_file_id"`
