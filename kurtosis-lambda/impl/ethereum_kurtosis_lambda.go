@@ -55,9 +55,12 @@ type EthereumKurtosisLambdaParams struct {
 }
 
 type EthereumKurtosisLambdaResult struct {
-	BootnodeServiceID services.ServiceID `json:"bootnode_service_id"`
-	NodeServiceIDs []services.ServiceID `json:"node_service_ids"`
-	StaticFileIDs []services.StaticFileID `json:"static_file_ids"`
+	BootnodeServiceID          services.ServiceID      `json:"bootnode_service_id"`
+	NodeServiceIDs             []services.ServiceID    `json:"node_service_ids"`
+	StaticFileIDs              []services.StaticFileID `json:"static_file_ids"`
+	GenesisStaticFileID        services.StaticFileID   `json:"genesis_static_file_id"`
+	PasswordStaticFileID       services.StaticFileID   `json:"password_static_file_id"`
+	SignerKeystoreStaticFileID services.StaticFileID   `json:"signer_keystore_static_file_id"`
 }
 
 type AddPeerResponse struct {
@@ -112,9 +115,11 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 	}
 
 	ethereumKurtosisLambdaResult := &EthereumKurtosisLambdaResult{
-		BootnodeServiceID: bootnodeInfo.ServiceID,
-		NodeServiceIDs: nodeServiceIDs,
-		StaticFileIDs: static_files_consts.GetStaticFileIDs(),
+		BootnodeServiceID:          bootnodeInfo.ServiceID,
+		NodeServiceIDs:             nodeServiceIDs,
+		GenesisStaticFileID:        static_files_consts.GenesisStaticFileID,
+		PasswordStaticFileID:       static_files_consts.PasswordStaticFileID,
+		SignerKeystoreStaticFileID: static_files_consts.SignerKeystoreFileID,
 	}
 
 	result, err := json.Marshal(ethereumKurtosisLambdaResult)
@@ -160,7 +165,7 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (*BootnodeInfo, error
 
 	bootnodeInfo := &BootnodeInfo{
 		ServiceID: serviceCtx.GetServiceID(),
-		Enr: string(*logOutput),
+		Enr:       string(*logOutput),
 	}
 
 	return bootnodeInfo, nil
@@ -215,7 +220,7 @@ func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID servic
 
 	nodeInfo := &NodeInfo{
 		ServiceID: serviceCtx.GetServiceID(),
-		Enode: enode,
+		Enode:     enode,
 	}
 
 	return nodeInfo, nil
