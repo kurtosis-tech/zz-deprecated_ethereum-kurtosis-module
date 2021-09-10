@@ -25,27 +25,22 @@ const (
 	rpcPort       = 8545
 	wsPort        = 8546
 	discoveryPort = 30303
+	subnetRange   = "/24"
 
-	subnetRange = "/24"
-
-	bootnodeServiceID = "bootnode"
-
-	adminInfoRpcCall = `{"jsonrpc":"2.0","method": "admin_nodeInfo","params":[],"id":67}`
+	bootnodeServiceID  = "bootnode"
+	ethServiceIdPrefix = "ethereum-node-"
+	ethNodesQuantity   = 3
 
 	waitEndpointInitialDelayMilliseconds = 100
 	waitEndpointRetries                  = 30
 	waitEndpointRetriesDelayMilliseconds = 5
 
+	adminInfoRpcCall           = `{"jsonrpc":"2.0","method": "admin_nodeInfo","params":[],"id":67}`
 	execCommandSuccessExitCode = 0
-
-	ethNodesQuantity   = 3
-	ethServiceIdPrefix = "ethereum-node-"
-
-	rpcRequestTimeout = 30 * time.Second
-	jsonContentType   = "application/json"
-
-	enodePrefix       = "enode://"
-	handshakeProtocol = "eth: \"handshake\""
+	rpcRequestTimeout          = 30 * time.Second
+	jsonContentType            = "application/json"
+	enodePrefix                = "enode://"
+	handshakeProtocol          = "eth: \"handshake\""
 )
 
 type EthereumKurtosisLambda struct {
@@ -55,11 +50,11 @@ type EthereumKurtosisLambdaParams struct {
 }
 
 type EthereumKurtosisLambdaResult struct {
-	BootnodeServiceID          services.ServiceID      `json:"bootnode_service_id"`
-	NodeServiceIDs             []services.ServiceID    `json:"node_service_ids"`
-	GenesisStaticFileID        services.StaticFileID   `json:"genesis_static_file_id"`
-	PasswordStaticFileID       services.StaticFileID   `json:"password_static_file_id"`
-	SignerKeystoreStaticFileID services.StaticFileID   `json:"signer_keystore_static_file_id"`
+	BootnodeServiceID          services.ServiceID    `json:"bootnode_service_id"`
+	NodeServiceIDs             []services.ServiceID  `json:"node_service_ids"`
+	GenesisStaticFileID        services.StaticFileID `json:"genesis_static_file_id"`
+	PasswordStaticFileID       services.StaticFileID `json:"password_static_file_id"`
+	SignerKeystoreStaticFileID services.StaticFileID `json:"signer_keystore_static_file_id"`
 }
 
 type AddPeerResponse struct {
