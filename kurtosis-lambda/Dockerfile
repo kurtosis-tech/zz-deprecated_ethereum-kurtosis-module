@@ -29,6 +29,9 @@ WORKDIR /run
 # Copy the code into the container
 COPY --from=builder /build/kurtosis-lambda.bin .
 
+# Copy local static files inside the testsuite image
+COPY kurtosis-lambda/static-files /static-files
+
 # Execute Lambda
 CMD ./kurtosis-lambda.bin
 
