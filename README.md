@@ -1,11 +1,13 @@
 Ethereum Kurtosis Lambda
 =====================
-This repo contains a [Kurtosis Lambda](https://docs.kurtosistech.com/advanced-usage.html#kurtosis-lambdas) for starting a private Ethereum network.
-You can use the Ethereum Kurtosis Lambda to run and interact with an Ethereum private network inside a Kurtosis testsuite or by Kurtosis interactive.
+This repo contains a [Kurtosis Lambda](https://docs.kurtosistech.com/advanced-usage.html#kurtosis-lambdas) for starting
+a private Ethereum network. You can use the Ethereum Kurtosis Lambda to run and interact with an Ethereum private
+network inside a Kurtosis testsuite or by Kurtosis interactive.
 
-##Usage Example 
+## Usage Example
 
-##Golang
+## Golang
+
 ```golang
 package my_test
 
@@ -21,26 +23,24 @@ import (
 )
 
 const (
-   lambdaID                                = "eth-lambda"
-   ethereumKurtosisLambdaImage             = "kurtosistech/ethereum-kurtosis-lambda"
-   emptyJsonParams                         = "{}"
-   rpcPort                                 = 8545
-   execCommandSuccessExitCode              = 0
+   lambdaID                    = "eth-lambda"
+   ethereumKurtosisLambdaImage = "kurtosistech/ethereum-kurtosis-lambda"
+   emptyJsonParams             = "{}"
+   execCommandSuccessExitCode  = 0
 )
 
 type MyTest struct{}
 
 type EthereumKurtosisLambdaResult struct {
-   BootnodeServiceID          services.ServiceID      `json:"bootnode_service_id"`
-   NodeServiceIDs             []services.ServiceID    `json:"node_service_ids"`
-   StaticFileIDs              []services.StaticFileID `json:"static_file_ids"`
-   GenesisStaticFileID        services.StaticFileID   `json:"genesis_static_file_id"`
-   PasswordStaticFileID       services.StaticFileID   `json:"password_static_file_id"`
-   SignerKeystoreStaticFileID services.StaticFileID   `json:"signer_keystore_static_file_id"`
+   BootnodeServiceID     services.ServiceID   `json:"bootnode_service_id"`
+   NodeServiceIDs        []services.ServiceID `json:"node_service_ids"`
+   RpcPort               uint32               `json:"rpc_port"`
+   SignerKeystoreContent string               `json:"signer_keystore_content"`
+   SignerAccountPassword string               `json:"signer_account_password"`
 }
 
 func (test MyTest) Configure(builder *testsuite.TestConfigurationBuilder) {
-	builder.WithSetupTimeoutSeconds(240).WithRunTimeoutSeconds(240)
+   builder.WithSetupTimeoutSeconds(240).WithRunTimeoutSeconds(240)
 }
 
 func (test MyTest) Setup(networkCtx *networks.NetworkContext) (networks.Network, error) {
@@ -75,7 +75,7 @@ func (test MyTest) Run(uncastedNetwork networks.Network) error {
    logrus.Infof("Got service context for Ethereum bootnode service '%v'", bootnodeServiceCtx.GetServiceID())
 
    //Execute a Geth command, inside the Ethereum bootnode, to get the accounts list
-   //Check Geth official documentation in https://geth.ethereum.org/docs/interface/command-line-options to see what 
+   //Check Geth official documentation in https://geth.ethereum.org/docs/interface/command-line-options to see what
    //others Geth's commands are available to use in a Kurtosis test
    gethCmd := "geth attach data/geth.ipc --exec eth.accounts"
    listAccountsCmd := []string{
@@ -95,7 +95,7 @@ func (test MyTest) Run(uncastedNetwork networks.Network) error {
    logrus.Infof("Account list: %v", string(*logOutput))
 
    //Instantiate Geth Client
-   url := fmt.Sprintf("http://%v:%v", bootnodeServiceCtx.GetIPAddress(), rpcPort)
+   url := fmt.Sprintf("http://%v:%v", bootnodeServiceCtx.GetIPAddress(), ethResult.RpcPort)
    gethClient, err := ethclient.Dial(url)
    if err != nil {
       return stacktrace.Propagate(err, "An error occurred getting the Golang Ethereum client")
@@ -105,4 +105,6 @@ func (test MyTest) Run(uncastedNetwork networks.Network) error {
    return nil
 }
 ````
-1. Read the [official Geth documentation](https://geth.ethereum.org/docs/) to discover and learn what others commands are available to execute in an Ethereum node
+
+1. Read the [official Geth documentation](https://geth.ethereum.org/docs/) to discover and learn what others commands
+   are available to execute in an Ethereum node
