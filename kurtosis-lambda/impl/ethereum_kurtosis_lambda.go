@@ -22,10 +22,10 @@ import (
 const (
 	ethereumDockerImageName = "ethereum/client-go:v1.10.8"
 
-	rpcPort       = 8545
-	wsPort        = 8546
-	discoveryPort = 30303
-	subnetRange   = "/24"
+	rpcPort       uint32 = 8545
+	wsPort        uint32 = 8546
+	discoveryPort uint32 = 30303
+	subnetRange          = "/24"
 
 	bootnodeServiceID  = "bootnode"
 	ethServiceIdPrefix = "ethereum-node-"
@@ -50,11 +50,11 @@ type EthereumKurtosisLambdaParams struct {
 }
 
 type EthereumKurtosisLambdaResult struct {
-	BootnodeServiceID          services.ServiceID    `json:"bootnode_service_id"`
-	NodeServiceIDs             []services.ServiceID  `json:"node_service_ids"`
-	GenesisStaticFileID        services.StaticFileID `json:"genesis_static_file_id"`
-	PasswordStaticFileID       services.StaticFileID `json:"password_static_file_id"`
-	SignerKeystoreStaticFileID services.StaticFileID `json:"signer_keystore_static_file_id"`
+	BootnodeServiceID     services.ServiceID   `json:"bootnode_service_id"`
+	NodeServiceIDs        []services.ServiceID `json:"node_service_ids"`
+	RpcPort               uint32               `json:"rpc_port"`
+	SignerKeystoreContent string               `json:"signer_keystore_content"`
+	SignerAccountPassword string               `json:"signer_account_password"`
 }
 
 type AddPeerResponse struct {
@@ -70,8 +70,8 @@ type NodeInfo struct {
 	Enode     string             `json:"enode"`
 }
 
-type BootnodeInfo struct {
-	ServiceID services.ServiceID `json:"service_id"`
+type Bootnode struct {
+	ServiceContext *services.ServiceContext `json:"service_context"`
 	Enr       string             `json:"enr"`
 }
 
@@ -91,7 +91,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred registering the static files")
 	}
 
-	bootnodeInfo, err := startEthBootnode(networkCtx)
+	bootnode, err := startEthBootnode(networkCtx)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum Bootnode")
 	}
@@ -100,7 +100,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 	var nodesInfo []*NodeInfo
 	for i := 1; i <= ethNodesQuantity; i++ {
 		serviceID := services.ServiceID(ethServiceIdPrefix + strconv.Itoa(i))
-		nodeInfo, err := starEthNodeByBootnode(networkCtx, serviceID, bootnodeInfo.Enr, nodesInfo)
+		nodeInfo, err := starEthNodeByBootnode(networkCtx, serviceID, bootnode.Enr, nodesInfo)
 		if err != nil {
 			return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum Node '%v'", serviceID)
 		}
@@ -108,12 +108,22 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		nodeServiceIDs = append(nodeServiceIDs, nodeInfo.ServiceID)
 	}
 
+	signerKeystoreContent, err := getStaticFileContent(bootnode.ServiceContext, static_files_consts.SignerKeystoreFileID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "An error occurred getting an static file content with ID '%v'", static_files_consts.SignerKeystoreFileID)
+	}
+
+	signerAccountPasswordContent, err := getStaticFileContent(bootnode.ServiceContext, static_files_consts.SignerAccountPasswordStaticFileID)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "An error occurred getting an static file content with ID '%v'", static_files_consts.SignerAccountPasswordStaticFileID)
+	}
+
 	ethereumKurtosisLambdaResult := &EthereumKurtosisLambdaResult{
-		BootnodeServiceID:          bootnodeInfo.ServiceID,
-		NodeServiceIDs:             nodeServiceIDs,
-		GenesisStaticFileID:        static_files_consts.GenesisStaticFileID,
-		PasswordStaticFileID:       static_files_consts.PasswordStaticFileID,
-		SignerKeystoreStaticFileID: static_files_consts.SignerKeystoreFileID,
+		BootnodeServiceID:     bootnode.ServiceContext.GetServiceID(),
+		NodeServiceIDs:        nodeServiceIDs,
+		RpcPort:               rpcPort,
+		SignerKeystoreContent: signerKeystoreContent,
+		SignerAccountPassword: signerAccountPasswordContent,
 	}
 
 	result, err := json.Marshal(ethereumKurtosisLambdaResult)
@@ -122,6 +132,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 	}
 	stringResult := string(result)
 
+	logrus.Infof("Ethereum Kurtosis Lambda Result value: %+v", ethereumKurtosisLambdaResult)
 	logrus.Info("Ethereum Kurtosis Lambda executed successfully")
 	return stringResult, nil
 }
@@ -129,7 +140,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 // ====================================================================================================
 //                                       Private helper functions
 // ====================================================================================================
-func startEthBootnode(networkCtx *networks.NetworkContext) (*BootnodeInfo, error) {
+func startEthBootnode(networkCtx *networks.NetworkContext) (*Bootnode, error) {
 	containerCreationConfig := getContainerCreationConfig()
 	runConfigFunc := getEthBootnodeRunConfigFunc()
 
@@ -138,7 +149,7 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (*BootnodeInfo, error
 		return nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
 	}
 
-	if err := networkCtx.WaitForHttpPostEndpointAvailability(bootnodeServiceID, uint32(rpcPort), "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
+	if err := networkCtx.WaitForHttpPostEndpointAvailability(bootnodeServiceID, rpcPort, "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
 		return nil, stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", bootnodeServiceID)
 	}
 
@@ -157,12 +168,12 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (*BootnodeInfo, error
 		return nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs: %+v", cmd, string(*logOutput))
 	}
 
-	bootnodeInfo := &BootnodeInfo{
-		ServiceID: serviceCtx.GetServiceID(),
+	bootnode := &Bootnode{
+		ServiceContext: serviceCtx,
 		Enr:       string(*logOutput),
 	}
 
-	return bootnodeInfo, nil
+	return bootnode, nil
 }
 
 func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID services.ServiceID, bootnodeEnr string, nodesInfo []*NodeInfo) (*NodeInfo, error) {
@@ -176,7 +187,7 @@ func starEthNodeByBootnode(networkCtx *networks.NetworkContext, serviceID servic
 
 	logrus.Infof("Added Ethereum nodeInfo %v service with host port bindings: %+v ", serviceID, hostPortBindings)
 
-	if err := networkCtx.WaitForHttpPostEndpointAvailability(serviceID, uint32(rpcPort), "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
+	if err := networkCtx.WaitForHttpPostEndpointAvailability(serviceID, rpcPort, "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
 		return nil, stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", serviceID)
 	}
 
@@ -244,9 +255,9 @@ func getEthBootnodeRunConfigFunc() func(ipAddr string, generatedFileFilepaths ma
 			return nil, stacktrace.NewError("No filepath found for key '%v'; this is a bug in Kurtosis!", static_files_consts.GenesisStaticFileID)
 		}
 
-		passwordFilepath, found := staticFileFilepaths[static_files_consts.PasswordStaticFileID]
+		passwordFilepath, found := staticFileFilepaths[static_files_consts.SignerAccountPasswordStaticFileID]
 		if !found {
-			return nil, stacktrace.NewError("No filepath found for key '%v'; this is a bug in Kurtosis!", static_files_consts.PasswordStaticFileID)
+			return nil, stacktrace.NewError("No filepath found for key '%v'; this is a bug in Kurtosis!", static_files_consts.SignerAccountPasswordStaticFileID)
 		}
 
 		signerKeystoreFilepath, found := staticFileFilepaths[static_files_consts.SignerKeystoreFileID]
@@ -360,4 +371,33 @@ func getEnodeAddress(ipAddress string) (string, error) {
 		return "", stacktrace.Propagate(err, "Failed to send admin node info RPC request to Geth node with ip %v", ipAddress)
 	}
 	return nodeInfoResponse.Result.Enode, nil
+}
+
+func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileID services.StaticFileID) (string, error) {
+	staticFileAbsFilepaths, err := serviceCtx.LoadStaticFiles(map[services.StaticFileID]bool{
+		staticFileID: true,
+	})
+	logrus.Infof("staticFileAbsFilepaths: %+v", staticFileAbsFilepaths)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "An error occurred loading an static file with ID '%v'", staticFileID)
+	}
+	filepath, found := staticFileAbsFilepaths[staticFileID]
+	if !found {
+		return "", stacktrace.Propagate(err, "No filepath found for key '%v'; this is a bug in Kurtosis!", staticFileID)
+	}
+
+	catStaticFileCmd := []string{
+		"cat",
+		filepath,
+	}
+	exitCode, outputBytes, err := serviceCtx.ExecCommand(catStaticFileCmd)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "An error occurred executing command '%+v' to cat the static test file 1 contents", catStaticFileCmd)
+	}
+	if exitCode != execCommandSuccessExitCode {
+		return "", stacktrace.NewError("Command '%+v' to cat the static file '%v' exited with non-successful exit code '%v'", catStaticFileCmd, filepath, exitCode)
+	}
+	fileContents := string(*outputBytes)
+
+	return fileContents, nil
 }

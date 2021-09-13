@@ -75,6 +75,8 @@ func (test MyTest) Run(uncastedNetwork networks.Network) error {
    logrus.Infof("Got service context for Ethereum bootnode service '%v'", bootnodeServiceCtx.GetServiceID())
 
    //Execute a Geth command, inside the Ethereum bootnode, to get the accounts list
+   //Check Geth official documentation in https://geth.ethereum.org/docs/interface/command-line-options to see what 
+   //others Geth's commands are available to use in a Kurtosis test
    gethCmd := "geth attach data/geth.ipc --exec eth.accounts"
    listAccountsCmd := []string{
       "/bin/sh",
