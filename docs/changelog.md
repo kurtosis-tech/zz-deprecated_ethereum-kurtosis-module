@@ -1,6 +1,9 @@
 # TBD
+### Changes
+* Removed unnecessary (for now) CircleCI steps
 
 # 0.1.1
+### Fixes
 * Added newline at the end of README file
 * Corrected syntax error in changelog header
 
