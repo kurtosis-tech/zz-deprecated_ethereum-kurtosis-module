@@ -39,14 +39,11 @@ jobs:
       - run: echo "${DOCKER_PASSWORD}" | docker login -u ${DOCKER_USERNAME} --password-stdin
       - run: bash ./scripts/build.sh
 
-      # AFAICT, CircleCI doesn't have a nice way to define a derived variable that then gets passed to all later steps, so
-      #  we have to do this
       - run: |
           set -euo pipefail
           version_to_publish="$(scripts/get-docker-images-tag.sh)"
           echo "Version that will be published: ${version_to_publish}"
-          echo "export VERSION_TO_PUBLISH=\"${version_to_publish}\"" >> $BASH_ENV
-          image_name="kurtosistech/ethereum-kurtosis-lambda:${VERSION_TO_PUBLISH}"
+          image_name="kurtosistech/ethereum-kurtosis-lambda:${version_to_publish}"
           docker push "${image_name}"
 
 workflows:
