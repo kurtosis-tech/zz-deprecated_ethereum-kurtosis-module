@@ -1,4 +1,6 @@
 # TBD
+
+# 0.1.4
 ### Fixes
 * Fixed bug with publishing the Docker image
 
