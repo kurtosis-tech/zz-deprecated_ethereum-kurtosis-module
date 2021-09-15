@@ -38,10 +38,4 @@ if ! docker_tag="$(echo "${git_ref}" | sed "${GIT_REF_SANITIZING_SED_REGEX}")"; 
     exit 1
 fi
 
-# If we're building a tag of X.Y.Z, then we need to actually build the Docker images and generate the wrapper script with tag X.Y so that users will
-#  get patch updates transparently
-if [[ "${docker_tag}" =~ ${RELEASE_VERSION_REGEX} ]]; then
-    docker_tag="$(echo "${docker_tag}" | egrep -o "${SHORTENED_RELEASE_VERSION_REGEX}")"
-fi
-
 echo "${docker_tag}"

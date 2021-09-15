@@ -1,5 +1,9 @@
 # TBD
 
+# 0.1.3
+### Changes
+* Make versioning `X.Y.Z` rather than `X.Y`
+
 # 0.1.2
 ### Changes
 * Removed unnecessary (for now) CircleCI steps
