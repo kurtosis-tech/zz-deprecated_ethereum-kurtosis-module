@@ -1,4 +1,6 @@
 # TBD
+### Changes
+* Make versioning `X.Y.Z` rather than `X.Y`
 
 # 0.1.2
 ### Changes
