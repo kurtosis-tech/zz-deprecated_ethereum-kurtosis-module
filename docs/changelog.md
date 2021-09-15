@@ -1,5 +1,9 @@
 # TBD
 
+# 0.1.4
+### Fixes
+* Fixed bug with publishing the Docker image
+
 # 0.1.3
 ### Changes
 * Make versioning `X.Y.Z` rather than `X.Y`
