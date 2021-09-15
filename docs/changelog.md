@@ -1,4 +1,6 @@
 # TBD
+
+# 0.1.2
 ### Changes
 * Removed unnecessary (for now) CircleCI steps
 
