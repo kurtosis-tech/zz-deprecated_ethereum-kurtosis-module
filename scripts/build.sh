@@ -28,7 +28,7 @@ fi
 
 # Build Docker image
 dockerfile_filepath="${root_dirpath}/${LAMBDA_DIRNAME}/Dockerfile"
-image_name="${IMAGE_ORG_AND_REPO}/${docker_tag}"
+image_name="${IMAGE_ORG_AND_REPO}:${docker_tag}"
 echo "Building Kurtosis Lambda into a Docker image named '${image_name}'..."
 if ! docker build -t "${image_name}" -f "${dockerfile_filepath}" "${root_dirpath}"; then
   echo "Error: Docker build of the Kurtosis Lambda failed" >&2
