@@ -1,7 +1,9 @@
 # TBD
+* Added newline at the end of README file
+* Corrected syntax error in changelog header
 
 # 0.1.0
-###Feature
+### Feature
 * Implement a Kurtosis Lambda for an Ethereum Private Network ready to be used in Kurtosis testsuite or with Kurtosis Interactive
     * Set an Ethereum bootnode with a custom genesis block
     * Seth three Ethereum nodes using the bootnode
