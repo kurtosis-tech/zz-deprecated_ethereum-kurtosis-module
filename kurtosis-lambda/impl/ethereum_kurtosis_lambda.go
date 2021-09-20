@@ -29,7 +29,7 @@ const (
 
 	bootnodeServiceID  = "bootnode"
 	ethServiceIdPrefix = "ethereum-node-"
-	ethNodesQuantity   = 3
+	ethNodesQuantity   = 2
 
 	waitEndpointInitialDelayMilliseconds = 100
 	waitEndpointRetries                  = 30

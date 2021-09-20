@@ -1,4 +1,6 @@
 # TBD
+### Changes
+* Update the amount of Ethereum private network nodes from 4 to 3 to improve start up process
 
 # 0.1.4
 ### Fixes
