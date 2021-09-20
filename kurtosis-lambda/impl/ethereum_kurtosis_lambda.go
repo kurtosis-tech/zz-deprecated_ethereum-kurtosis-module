@@ -72,23 +72,6 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
 	}
 
-	/*
-	lambdaApiNodeInfo := map[services.ServiceID]*LambdaAPINodeInfo{
-		bootnodeServiceID: lambdaApiBootnodeInfo,
-	}
-	allChildEnodes := map[services.ServiceID]string{}
-	for i := 1; i <= childEthNodeQuantity; i++ {
-		serviceId := services.ServiceID(childEthNodeServiceIdPrefix + strconv.Itoa(i))
-		childEnode, lambdaApiChildNodeInfo, err := starEthNodeByBootnode(networkCtx, serviceId, bootnodeEnr, allChildEnodes)
-		if err != nil {
-			return "", stacktrace.Propagate(err, "An error occurred starting child Ethereum node '%v'", serviceId)
-		}
-		lambdaApiNodeInfo[serviceId] = lambdaApiChildNodeInfo
-		allChildEnodes[serviceId] = childEnode
-	}
-
-	 */
-
 	signerKeystoreContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerKeystoreFileID)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred getting an static file content with ID '%v'", static_files_consts.SignerKeystoreFileID)
@@ -187,36 +170,6 @@ func startEthNodes(
 		}
 		logrus.Infof("Added Ethereum node '%v' with host port bindings: %+v ", serviceId, hostPortBindings)
 
-		/*
-		for peerServiceId, peerEnode := range allPeerEnodes {
-			if err := addPeer(serviceCtx.GetIPAddress(), peerEnode); err != nil {
-				return nil, nil, stacktrace.Propagate(err, "Failed to add peer '%v' with enode '%v' to node '%v'", peerServiceId, peerEnode, serviceId)
-			}
-		}
-
-		cmd := "geth attach data/geth.ipc --exec admin.peers"
-		exitCode, logOutput, err := serviceCtx.ExecCommand([]string{
-			"/bin/sh",
-			"-c",
-			cmd,
-		})
-		if err != nil {
-			return "", nil, stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
-		}
-		if exitCode != execCommandSuccessExitCode {
-			return "", nil, stacktrace.NewError("Executing command returned an failing exit code with logs: %+v", string(*logOutput))
-		}
-
-		numExpectedPeers := len(allPeerEnodes) + 1  // Plus one for the bootnode
-		if err = validatePeersQuantity(string(*logOutput), serviceId, numExpectedPeers); err != nil {
-			return "", nil, stacktrace.Propagate(err, "Validate peers error")
-		}
-
-		enodeAddr, err := getEnodeAddress(serviceCtx.GetIPAddress())
-		if err != nil {
-			return "", nil, stacktrace.Propagate(err, "Failed to get nodeInfo from peer %v", serviceId)
-		}
-		*/
 
 		lambdaApiNodeInfo := &LambdaAPINodeInfo{
 			IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
@@ -352,65 +305,6 @@ func verifyExpectedNumberPeers(serviceId services.ServiceID, serviceCtx *service
 	}
 	return nil
 }
-
-/*
-func starEthNodeByBootnode(
-	networkCtx *networks.NetworkContext,
-		serviceId services.ServiceID,
-		bootnodeEnr string,
-		allPeerEnodes map[services.ServiceID]string) (enode string, nodeInfo *LambdaAPINodeInfo, resultErr error) {
-	containerCreationConfig := getContainerCreationConfig()
-	runConfigFunc := getEthNodeRunConfigFunc(bootnodeEnr)
-
-	serviceCtx, hostPortBindings, err := networkCtx.AddService(serviceId, containerCreationConfig, runConfigFunc)
-	if err != nil {
-		return "", nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum nodeInfo wit service ID %v", serviceId)
-	}
-	logrus.Infof("Added Ethereum node '%v' with host port bindings: %+v ", serviceId, hostPortBindings)
-
-	if err := networkCtx.WaitForHttpPostEndpointAvailability(serviceId, rpcPort, "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
-		return "", nil, stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", serviceId)
-	}
-
-	for peerServiceId, peerEnode := range allPeerEnodes {
-		if err := addPeer(serviceCtx.GetIPAddress(), peerEnode); err != nil {
-			return "", nil, stacktrace.Propagate(err, "Failed to add peer '%v' with enode '%v' to node '%v'", peerServiceId, peerEnode, serviceId)
-		}
-	}
-
-	cmd := "geth attach data/geth.ipc --exec admin.peers"
-	exitCode, logOutput, err := serviceCtx.ExecCommand([]string{
-		"/bin/sh",
-		"-c",
-		cmd,
-	})
-	if err != nil {
-		return "", nil, stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
-	}
-	if exitCode != execCommandSuccessExitCode {
-		return "", nil, stacktrace.NewError("Executing command returned an failing exit code with logs: %+v", string(*logOutput))
-	}
-
-	numExpectedPeers := len(allPeerEnodes) + 1  // Plus one for the bootnode
-	if err = validatePeersQuantity(string(*logOutput), serviceId, numExpectedPeers); err != nil {
-		return "", nil, stacktrace.Propagate(err, "Validate peers error")
-	}
-
-	enodeAddr, err := getEnodeAddress(serviceCtx.GetIPAddress())
-	if err != nil {
-		return "", nil, stacktrace.Propagate(err, "Failed to get nodeInfo from peer %v", serviceId)
-	}
-
-	lambdaApiNodeInfo := &LambdaAPINodeInfo{
-		IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
-		ExposedPortsSet:            containerCreationConfig.GetUsedPortsSet(),
-		PortBindingsOnLocalMachine: hostPortBindings,
-	}
-
-	return enodeAddr, lambdaApiNodeInfo, nil
-}
-
- */
 
 func getContainerCreationConfig() *services.ContainerCreationConfig {
 
