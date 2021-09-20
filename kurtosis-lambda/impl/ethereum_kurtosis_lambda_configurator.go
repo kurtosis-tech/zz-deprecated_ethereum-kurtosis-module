@@ -19,7 +19,7 @@ func NewEthereumKurtosisLambdaConfigurator() *EthereumKurtosisLambdaConfigurator
 
 func (t EthereumKurtosisLambdaConfigurator) ParseParamsAndCreateKurtosisLambda(serializedCustomParamsStr string) (kurtosis_lambda.KurtosisLambda, error) {
 	serializedCustomParamsBytes := []byte(serializedCustomParamsStr)
-	var args EthereumKurtosisLambdaArgs
+	var args LambdaInitArgs
 	if err := json.Unmarshal(serializedCustomParamsBytes, &args); err != nil {
 		return nil, stacktrace.Propagate(err, "An error occurred deserializing the Kurtosis Lambda serialized custom params with value '%v", serializedCustomParamsStr)
 	}
