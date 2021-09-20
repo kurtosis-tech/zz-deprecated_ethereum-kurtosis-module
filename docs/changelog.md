@@ -1,4 +1,6 @@
 # TBD
+
+# 0.2.0
 ### Changes
 * Start only 2 child ETH nodes (for 3 total, with the boot node) rather than 4
 * Start all child ETH nodes then wait for them all to become available, rather than doing "start first node, wait for it, start second node, wait for it..."
