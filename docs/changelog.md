@@ -1,5 +1,15 @@
 # TBD
 
+# 0.2.0
+### Changes
+* Start only 2 child ETH nodes (for 3 total, with the boot node) rather than 4
+* Start all child ETH nodes then wait for them all to become available, rather than doing "start first node, wait for it, start second node, wait for it..."
+* Changed the result object to also contain local host machine port bindings, so users can easily access the cluster in interactvie/debug mode
+
+### Breaking Changes
+* The Lambda execution result object has been completely redesigned to provide significantly more information
+    * Users should switch to using the new object's fields
+
 # 0.1.4
 ### Fixes
 * Fixed bug with publishing the Docker image
