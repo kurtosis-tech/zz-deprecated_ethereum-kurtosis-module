@@ -1,4 +1,6 @@
 # TBD
+
+# 0.2.1
 ### Fixes
 * Upgrade to lambda-api-lib 0.9.0, for latest Kurt Core compatibility
 
