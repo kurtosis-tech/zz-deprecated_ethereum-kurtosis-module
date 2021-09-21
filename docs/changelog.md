@@ -1,5 +1,9 @@
 # TBD
 
+# 0.2.1
+### Fixes
+* Upgrade to lambda-api-lib 0.9.0, for latest Kurt Core compatibility
+
 # 0.2.0
 ### Changes
 * Start only 2 child ETH nodes (for 3 total, with the boot node) rather than 4

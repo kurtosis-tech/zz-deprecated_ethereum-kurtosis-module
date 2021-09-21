@@ -133,7 +133,7 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 		return nil, "", nil, stacktrace.Propagate(err, "Executing command '%v' returned an error", cmd)
 	}
 	if exitCode != execCommandSuccessExitCode {
-		return nil, "", nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs: %+v", cmd, string(*logOutput))
+		return nil, "", nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs:\n%v", cmd, logOutput)
 	}
 
 	lambdaApiNodeInfo := &LambdaAPINodeInfo{
@@ -142,7 +142,7 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 		PortBindingsOnLocalMachine: hostPortBindings,
 	}
 
-	return serviceCtx, string(*logOutput), lambdaApiNodeInfo, nil
+	return serviceCtx, logOutput, lambdaApiNodeInfo, nil
 }
 
 func startEthNodes(
@@ -281,7 +281,6 @@ func verifyExpectedNumberPeers(serviceId services.ServiceID, serviceCtx *service
 			serviceId,
 		)
 	}
-	logOutputStr := string(*logOutput)
 	if exitCode != execCommandSuccessExitCode {
 		return stacktrace.NewError(
 			"Executing peer-getting command '%v' on service '%v' returned non-%v exit code '%v' with the following logs:\n%v",
@@ -289,12 +288,12 @@ func verifyExpectedNumberPeers(serviceId services.ServiceID, serviceCtx *service
 			serviceId,
 			execCommandSuccessExitCode,
 			exitCode,
-			logOutputStr,
+			logOutput,
 		)
 	}
 
 	// peersQuantity := strings.Count(logOutputStr, enodePrefix) - strings.Count(logOutputStr, handshakeProtocol)
-	peersQuantity := strings.Count(logOutputStr, enodePrefix) - strings.Count(logOutputStr, handshakeProtocol)
+	peersQuantity := strings.Count(logOutput, enodePrefix) - strings.Count(logOutput, handshakeProtocol)
 	if peersQuantity != numExpectedPeers {
 		return stacktrace.NewError(
 			"Expected '%v' peers for node '%v' but got '%v'",
@@ -509,14 +508,13 @@ func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileID serv
 		"cat",
 		filepath,
 	}
-	exitCode, outputBytes, err := serviceCtx.ExecCommand(catStaticFileCmd)
+	exitCode, fileContents, err := serviceCtx.ExecCommand(catStaticFileCmd)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred executing command '%+v' to cat the static test file 1 contents", catStaticFileCmd)
 	}
 	if exitCode != execCommandSuccessExitCode {
 		return "", stacktrace.NewError("Command '%+v' to cat the static file '%v' exited with non-successful exit code '%v'", catStaticFileCmd, filepath, exitCode)
 	}
-	fileContents := string(*outputBytes)
 
 	return fileContents, nil
 }

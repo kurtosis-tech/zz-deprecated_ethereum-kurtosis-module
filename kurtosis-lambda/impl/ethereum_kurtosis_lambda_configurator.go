@@ -2,7 +2,7 @@ package impl
 
 import (
 	"encoding/json"
-	kurtosis_lambda "github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang/lib/kurtosis-lambda"
+	"github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang/lib/kurtosis_lambda"
 	"github.com/palantir/stacktrace"
 	"github.com/sirupsen/logrus"
 )
