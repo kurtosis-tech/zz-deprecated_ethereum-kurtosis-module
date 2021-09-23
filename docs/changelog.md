@@ -1,4 +1,6 @@
 # TBD
+### Changes
+* Simplified the README to show the Lambda being loaded into a Kurtosis sandbox
 
 # 0.2.1
 ### Fixes
