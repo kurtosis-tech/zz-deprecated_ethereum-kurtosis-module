@@ -1,5 +1,12 @@
 # TBD
 
+# 0.2.2
+### Changes
+* Simplified the README to show the Lambda being loaded into a Kurtosis sandbox
+
+### Fixes
+* Fixed an issue where, when waiting for ETH nodes to come up, we were waiting for 5ms between retries (changed to 500ms)
+
 # 0.2.1
 ### Fixes
 * Upgrade to lambda-api-lib 0.9.0, for latest Kurt Core compatibility
