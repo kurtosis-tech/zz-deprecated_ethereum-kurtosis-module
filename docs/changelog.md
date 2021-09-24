@@ -1,4 +1,6 @@
 # TBD
+
+# 0.2.3
 ### Features
 * Also publish a `latest` tag for this image
 
