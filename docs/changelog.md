@@ -1,5 +1,9 @@
 # TBD
 
+# 0.2.3
+### Features
+* Also publish a `latest` tag for this image
+
 # 0.2.2
 ### Changes
 * Simplified the README to show the Lambda being loaded into a Kurtosis sandbox

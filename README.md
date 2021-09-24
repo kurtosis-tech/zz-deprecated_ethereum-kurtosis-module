@@ -5,7 +5,7 @@ This repo contains a [Kurtosis Lambda](https://docs.kurtosistech.com/lambdas.htm
 You can run this inside the [Kurtosis sandbox](https://docs.kurtosistech.com/sandbox.html) like so:
 
 ```javascript
-loadLambdaResult = await networkCtx.loadLambda("eth-lambda", "kurtosistech/ethereum-kurtosis-lambda:0.2.1", "{}")
+loadLambdaResult = await networkCtx.loadLambda("eth-lambda", "kurtosistech/ethereum-kurtosis-lambda", "{}")
 lambdaCtx = loadLambdaResult.value
 executeResult = await lambdaCtx.execute("{}")
 executeResultObj = JSON.parse(executeResult.value)
