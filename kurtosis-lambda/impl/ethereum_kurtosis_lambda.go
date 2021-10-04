@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -48,6 +49,13 @@ const (
 	timeBetweenPeerCountValidationAttempts = 500 * time.Millisecond
 )
 
+var usedPortsSet = map[string]bool{
+	fmt.Sprintf("%v/tcp", rpcPort):               true,
+	fmt.Sprintf("%v/tcp", wsPort):        true,
+	fmt.Sprintf("%v/tcp", discoveryPort): true,
+	fmt.Sprintf("%v/udp", discoveryPort): true,
+}
+
 type EthereumKurtosisLambda struct {
 }
 
@@ -63,23 +71,19 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the Ethereum Kurtosis Lambda serialized params with value '%v'", serializedParams)
 	}
 
-	if err := networkCtx.RegisterStaticFiles(static_files_consts.StaticFileFilepaths); err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred registering the static files")
-	}
-
 	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(networkCtx)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
 	}
 
-	signerKeystoreContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerKeystoreFileID)
+	signerKeystoreContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerKeystoreFileName)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred getting an static file content with ID '%v'", static_files_consts.SignerKeystoreFileID)
+		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerKeystoreFileName)
 	}
 
-	signerAccountPasswordContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerAccountPasswordStaticFileID)
+	signerAccountPasswordContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerAccountPasswordStaticFileName)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred getting an static file content with ID '%v'", static_files_consts.SignerAccountPasswordStaticFileID)
+		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
 	}
 
 	ethereumKurtosisLambdaResult := &LambdaAPIExecuteResult{
@@ -109,10 +113,9 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 	nodeInfo *LambdaAPINodeInfo,
 	resultErr error,
 ) {
-	containerCreationConfig := getContainerCreationConfig()
-	runConfigFunc := getEthBootnodeRunConfigFunc()
+	containerConfigSupplier := getBootnodeContainerConfigSupplier()
 
-	serviceCtx, hostPortBindings, err := networkCtx.AddService(bootnodeServiceID, containerCreationConfig, runConfigFunc)
+	serviceCtx, hostPortBindings, err := networkCtx.AddService(bootnodeServiceID, containerConfigSupplier)
 	if err != nil {
 		return nil, "", nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
 	}
@@ -138,7 +141,7 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 
 	lambdaApiNodeInfo := &LambdaAPINodeInfo{
 		IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
-		ExposedPortsSet:            containerCreationConfig.GetUsedPortsSet(),
+		ExposedPortsSet:            usedPortsSet,
 		PortBindingsOnLocalMachine: hostPortBindings,
 	}
 
@@ -161,10 +164,9 @@ func startEthNodes(
 	for i := 1; i <= childEthNodeQuantity; i++ {
 		serviceId := services.ServiceID(childEthNodeServiceIdPrefix + strconv.Itoa(i))
 
-		containerCreationConfig := getContainerCreationConfig()
-		runConfigFunc := getEthNodeRunConfigFunc(bootnodeEnr)
+		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr)
 
-		serviceCtx, hostPortBindings, err := networkCtx.AddService(serviceId, containerCreationConfig, runConfigFunc)
+		serviceCtx, hostPortBindings, err := networkCtx.AddService(serviceId, containerConfigSupplier)
 		if err != nil {
 			return nil, nil, stacktrace.Propagate(err, "An error occurred adding Ethereum node with service ID '%v'", serviceId)
 		}
@@ -173,7 +175,7 @@ func startEthNodes(
 
 		lambdaApiNodeInfo := &LambdaAPINodeInfo{
 			IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
-			ExposedPortsSet:            containerCreationConfig.GetUsedPortsSet(),
+			ExposedPortsSet:            usedPortsSet,
 			PortBindingsOnLocalMachine: hostPortBindings,
 		}
 
@@ -305,121 +307,6 @@ func verifyExpectedNumberPeers(serviceId services.ServiceID, serviceCtx *service
 	return nil
 }
 
-func getContainerCreationConfig() *services.ContainerCreationConfig {
-
-	containerCreationConfig := services.NewContainerCreationConfigBuilder(
-		ethereumDockerImageName,
-	).WithUsedPorts(
-		map[string]bool{
-			fmt.Sprintf("%v/tcp", rpcPort):       true,
-			fmt.Sprintf("%v/tcp", wsPort):        true,
-			fmt.Sprintf("%v/tcp", discoveryPort): true,
-			fmt.Sprintf("%v/udp", discoveryPort): true,
-		},
-	).WithStaticFiles(static_files_consts.StaticFiles).Build()
-
-	return containerCreationConfig
-
-}
-
-func getEthBootnodeRunConfigFunc() func(ipAddr string, generatedFileFilepaths map[string]string, staticFileFilepaths map[services.StaticFileID]string) (*services.ContainerRunConfig, error) {
-	runConfigFunc := func(ipAddr string, generatedFileFilepaths map[string]string, staticFileFilepaths map[services.StaticFileID]string) (*services.ContainerRunConfig, error) {
-		genesisFilepath, found := staticFileFilepaths[static_files_consts.GenesisStaticFileID]
-		if !found {
-			return nil, stacktrace.NewError("No filepath found for key '%v'; this is a bug in Kurtosis!", static_files_consts.GenesisStaticFileID)
-		}
-
-		passwordFilepath, found := staticFileFilepaths[static_files_consts.SignerAccountPasswordStaticFileID]
-		if !found {
-			return nil, stacktrace.NewError("No filepath found for key '%v'; this is a bug in Kurtosis!", static_files_consts.SignerAccountPasswordStaticFileID)
-		}
-
-		signerKeystoreFilepath, found := staticFileFilepaths[static_files_consts.SignerKeystoreFileID]
-		if !found {
-			return nil, stacktrace.NewError("No filepath found for key '%v'; this is a bug in Kurtosis!", static_files_consts.SignerKeystoreFileID)
-		}
-
-		keystoreFolder := filepath.Dir(signerKeystoreFilepath)
-
-		ipNet := getIPNet(ipAddr)
-
-		entryPointArgs := []string{
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf(
-				"geth init --datadir data %v && " +
-					"geth " +
-					"--keystore %v " +
-					"--datadir data " +
-					"--networkid %v " +
-					"-http " +
-					"--http.api admin,eth,net,web3,miner,personal,txpool,debug " +
-					"--http.addr %v " +
-					"--http.corsdomain '*' " +
-					"--nat extip:%v " +
-					"--port %v " +
-					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --" +
-					"mine " +
-					"--allow-insecure-unlock " +
-					"--netrestrict %v " +
-					"--password %v",
-				genesisFilepath,
-				keystoreFolder,
-				ethNetworkId,
-				ipAddr,
-				ipAddr,
-				discoveryPort,
-				ipNet,
-				passwordFilepath,
-			),
-		}
-
-		result := services.NewContainerRunConfigBuilder().WithEntrypointOverride(entryPointArgs).Build()
-		return result, nil
-	}
-	return runConfigFunc
-
-}
-
-func getEthNodeRunConfigFunc(bootnodeEnr string) func(ipAddr string, generatedFileFilepaths map[string]string, staticFileFilepaths map[services.StaticFileID]string) (*services.ContainerRunConfig, error) {
-	runConfigFunc := func(ipAddr string, generatedFileFilepaths map[string]string, staticFileFilepaths map[services.StaticFileID]string) (*services.ContainerRunConfig, error) {
-		genesisFilepath, found := staticFileFilepaths[static_files_consts.GenesisStaticFileID]
-		if !found {
-			return nil, stacktrace.NewError("No filepath found for test file 1 key '%v'; this is a bug in Kurtosis!", static_files_consts.GenesisStaticFileID)
-		}
-
-		entryPointArgs := []string{
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf(
-				"geth init --datadir data %v && " +
-					"geth " +
-					"--datadir data " +
-					"--networkid %v " +
-					"-http " +
-					"--http.api admin,eth,net,web3,miner,personal,txpool,debug " +
-					"--http.addr %v " +
-					"--http.corsdomain '*' " +
-					"--nat extip:%v " +
-					"--gcmode archive " +
-					"--syncmode full " +
-					"--port %v " +
-					"--bootnodes %v",
-				genesisFilepath,
-				ethNetworkId,
-				ipAddr,
-				ipAddr,
-				discoveryPort,
-				bootnodeEnr,
-			),
-		}
-
-		result := services.NewContainerRunConfigBuilder().WithEntrypointOverride(entryPointArgs).Build()
-		return result, nil
-	}
-	return runConfigFunc
-}
-
 func getIPNet(ipAddr string) *net.IPNet {
 	cidr := ipAddr + subnetRange
 	_, ipNet, _ := net.ParseCIDR(cidr)
@@ -491,31 +378,151 @@ func getEnodeAddress(ipAddress string) (string, error) {
 	return nodeInfoResponse.Result.Enode, nil
 }
 
-func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileID services.StaticFileID) (string, error) {
-	staticFileAbsFilepaths, err := serviceCtx.LoadStaticFiles(map[services.StaticFileID]bool{
-		staticFileID: true,
-	})
-	logrus.Infof("staticFileAbsFilepaths: %+v", staticFileAbsFilepaths)
-	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred loading an static file with ID '%v'", staticFileID)
-	}
-	filepath, found := staticFileAbsFilepaths[staticFileID]
-	if !found {
-		return "", stacktrace.Propagate(err, "No filepath found for key '%v'; this is a bug in Kurtosis!", staticFileID)
-	}
+func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName string) (string, error) {
+
+	staticFileFilePath := serviceCtx.GetSharedDirectory().GetChildPath(staticFileName)
 
 	catStaticFileCmd := []string{
 		"cat",
-		filepath,
+		staticFileFilePath.GetAbsPathOnServiceContainer(),
 	}
 	exitCode, fileContents, err := serviceCtx.ExecCommand(catStaticFileCmd)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred executing command '%+v' to cat the static test file 1 contents", catStaticFileCmd)
+		return "", stacktrace.Propagate(err, "An error occurred executing command '%+v' to cat the static '%v' contents", catStaticFileCmd, staticFileName)
 	}
 	if exitCode != execCommandSuccessExitCode {
-		return "", stacktrace.NewError("Command '%+v' to cat the static file '%v' exited with non-successful exit code '%v'", catStaticFileCmd, filepath, exitCode)
+		return "", stacktrace.NewError("Command '%+v' to cat the static file '%v' exited with non-successful exit code '%v'", catStaticFileCmd, staticFileFilePath.GetAbsPathOnServiceContainer(), exitCode)
 	}
 
 	return fileContents, nil
 }
 
+func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+	containerConfigSupplier  := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+
+		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
+		if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil{
+			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
+		}
+
+		keystoreFolder := filepath.Dir(sharedDirectory.GetChildPath(static_files_consts.SignerKeystoreFileName).GetAbsPathOnServiceContainer())
+
+		ipNet := getIPNet(ipAddr)
+
+		entryPointArgs := []string{
+			"/bin/sh",
+			"-c",
+			fmt.Sprintf(
+				"geth init --datadir data %v && " +
+					"geth " +
+					"--keystore %v " +
+					"--datadir data " +
+					"--networkid %v " +
+					"-http " +
+					"--http.api admin,eth,net,web3,miner,personal,txpool,debug " +
+					"--http.addr %v " +
+					"--http.corsdomain '*' " +
+					"--nat extip:%v " +
+					"--port %v " +
+					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --" +
+					"mine " +
+					"--allow-insecure-unlock " +
+					"--netrestrict %v " +
+					"--password %v",
+				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
+				keystoreFolder,
+				ethNetworkId,
+				ipAddr,
+				ipAddr,
+				discoveryPort,
+				ipNet,
+				sharedDirectory.GetChildPath(static_files_consts.SignerAccountPasswordStaticFileName).GetAbsPathOnServiceContainer(),
+			),
+		}
+
+		containerConfig := services.NewContainerConfigBuilder(
+			ethereumDockerImageName,
+		).WithUsedPorts(
+			usedPortsSet,
+		).WithEntrypointOverride(
+			entryPointArgs,
+	    ).Build()
+
+		return containerConfig, nil
+	}
+	return containerConfigSupplier
+}
+
+func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+	containerConfigSupplier  := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+
+		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
+		staticFileNames := []string{static_files_consts.GenesisStaticFileName}
+		if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil{
+			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
+		}
+
+		entryPointArgs := []string{
+			"/bin/sh",
+			"-c",
+			fmt.Sprintf(
+				"geth init --datadir data %v && " +
+					"geth " +
+					"--datadir data " +
+					"--networkid %v " +
+					"-http " +
+					"--http.api admin,eth,net,web3,miner,personal,txpool,debug " +
+					"--http.addr %v " +
+					"--http.corsdomain '*' " +
+					"--nat extip:%v " +
+					"--gcmode archive " +
+					"--syncmode full " +
+					"--port %v " +
+					"--bootnodes %v",
+				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
+				ethNetworkId,
+				ipAddr,
+				ipAddr,
+				discoveryPort,
+				bootnodeEnr,
+			),
+		}
+
+		containerConfig := services.NewContainerConfigBuilder(
+			ethereumDockerImageName,
+		).WithUsedPorts(
+			usedPortsSet,
+		).WithEntrypointOverride(
+			entryPointArgs,
+		).Build()
+
+		return containerConfig, nil
+	}
+	return containerConfigSupplier
+}
+
+func copyStaticFilesInServiceContainer(staticFilesNames []string, staticFilesFolder string, sharedDirectory *services.SharedPath) error {
+	for _, staticFileName := range staticFilesNames {
+		if err := copyStaticFileInServiceContainer(staticFileName, staticFilesFolder, sharedDirectory); err != nil {
+			return stacktrace.Propagate(err, "An error occurred copying file with filename '%v' to service's folder in service container", staticFileName)
+		}
+	}
+	return nil
+}
+
+func copyStaticFileInServiceContainer(staticFileName string, staticFilesFolder string,sharedDirectory *services.SharedPath) error {
+	testStaticFileFilePath := sharedDirectory.GetChildPath(staticFileName)
+
+	testStaticFilepath := filepath.Join(staticFilesFolder, staticFileName)
+
+	testStaticFileContent, err := ioutil.ReadFile(testStaticFilepath)
+	if err != nil {
+		return stacktrace.Propagate(err, "An error occurred reading file from '%v'", testStaticFilepath)
+	}
+
+	err = ioutil.WriteFile(testStaticFileFilePath.GetAbsPathOnThisContainer(), testStaticFileContent, os.ModePerm)
+	if err != nil {
+		return stacktrace.Propagate(err, "An error occurred writing file '%v'", testStaticFileFilePath.GetAbsPathOnThisContainer())
+	}
+	return nil
+}

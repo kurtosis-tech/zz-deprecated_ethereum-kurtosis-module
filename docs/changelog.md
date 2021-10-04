@@ -1,4 +1,6 @@
 # TBD
+### Features
+* Upgraded Kurt Lamba API Lib dependency to the latest version [Kurt Lambda API Lib 0.9.1](https://github.com/kurtosis-tech/kurtosis-lambda-api-lib/blob/develop/docs/changelog.md#091)
 
 # 0.2.3
 ### Features
