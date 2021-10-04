@@ -51,6 +51,7 @@ github.com/kurtosis-tech/kurtosis-client/golang v0.0.0-20210727165601-bf782c2aea
 github.com/kurtosis-tech/kurtosis-client/golang v0.0.0-20210908182744-67e23e68988f h1:sO5m+JW7tE4WPkHpVl7pY/qGCwnUIBNOAzDTXQOgPxg=
 github.com/kurtosis-tech/kurtosis-client/golang v0.0.0-20210908182744-67e23e68988f/go.mod h1:UQD+w+gp8PItWKvIKJGO2PExpmO6p0XhWfBOtGPzBLM=
 github.com/kurtosis-tech/kurtosis-client/golang v0.0.0-20210921005707-7242df8ee323/go.mod h1:UQD+w+gp8PItWKvIKJGO2PExpmO6p0XhWfBOtGPzBLM=
+github.com/kurtosis-tech/kurtosis-client/golang v0.0.0-20210924194127-1c931482f9f7/go.mod h1:UQD+w+gp8PItWKvIKJGO2PExpmO6p0XhWfBOtGPzBLM=
 github.com/kurtosis-tech/kurtosis-lambda-api-lib v0.0.0-20210721144718-8af9d7f40cc3 h1:5nQqL/TfO5xQjzXJu8sdizsuUebDcAJfAYJxEk3vOvI=
 github.com/kurtosis-tech/kurtosis-lambda-api-lib v0.0.0-20210727182426-12ce00d15acf h1:i81bWw4U2maGdLtJCtC4AKv+o4YwpD4DQefRdsOognI=
 github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210721144718-8af9d7f40cc3 h1:tlKxspzq3ky3e1eIuK3zJ13b8ptgYn1GOW3WHq/HhJM=
@@ -67,9 +68,12 @@ github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210730112335-6e
 github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210730112335-6e5e933ed383/go.mod h1:16ytFcqni8ajmB85IXV2xy8LJ2b4bJelOlRH0OwJb4Y=
 github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210921011216-96fad3665069 h1:waQnlrffy7VnoRF7mQPqQMBWXBfj96hGQWLtCLpTtVQ=
 github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210921011216-96fad3665069/go.mod h1:AAFgy0WR8Bm0ia64C0/6QGD7+GNkSurd1ypIRmSKkeQ=
+github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210927180614-7e4dfdc4ba51 h1:V+XzLJGX4jKX0IJSeyRt7ARQFFNrhG/hCMbmDIk9iTw=
+github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang v0.0.0-20210927180614-7e4dfdc4ba51/go.mod h1:pw9T/aG62SErCsNO88qt0c8RrB87rWKUE+Lg6gPYtPw=
 github.com/kurtosis-tech/minimal-grpc-server v0.0.0-20210504182615-82226e94877b h1:nT5nOiGX2r02IYaQDQ81PHKcLssLcXuRNjzNCpGL6PU=
 github.com/kurtosis-tech/minimal-grpc-server v0.0.0-20210504182615-82226e94877b/go.mod h1:/XcImLhsJTy+xD9xN9t6eV8ASM9s/OU5g/KqBb8DCEg=
 github.com/kurtosis-tech/minimal-grpc-server/golang v0.0.0-20210821054858-55e5a03c6334/go.mod h1:yHrYJlkpZAVsb2eH7KK2cZXabz03ZBKV/npGwsbN6vM=
+github.com/kurtosis-tech/minimal-grpc-server/golang v0.0.0-20210921153930-d70d7667c51b/go.mod h1:yHrYJlkpZAVsb2eH7KK2cZXabz03ZBKV/npGwsbN6vM=
 github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177 h1:nRlQD0u1871kaznCnn1EvYiMbum36v7hw1DLPEjds4o=
 github.com/palantir/stacktrace v0.0.0-20161112013806-78658fd2d177/go.mod h1:ao5zGxj8Z4x60IOVYZUbDSmt3R8Ddo080vEgPosHpak=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
