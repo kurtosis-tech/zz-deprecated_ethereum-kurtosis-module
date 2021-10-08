@@ -5,5 +5,5 @@ This repo contains a [Kurtosis Lambda](https://docs.kurtosistech.com/lambdas.htm
 Run it with [the CLI](https://docs.kurtosistech.com/installation.html) with:
 
 ```
-kurtosis lambda exec kurtosistech/ethereum-kurtosis-lambda`
+kurtosis lambda exec kurtosistech/ethereum-kurtosis-lambda
 ```
