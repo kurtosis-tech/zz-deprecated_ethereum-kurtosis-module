@@ -1,4 +1,6 @@
 # TBD
+### Changes
+* Made the instructions in the README for running the Lambda simpler
 
 # 0.2.5
 ### Features
