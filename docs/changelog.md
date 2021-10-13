@@ -1,4 +1,7 @@
 # TBD
+### Features
+* Run the Lambda in CI, for extra verification
+
 ### Changes
 * Made the instructions in the README for running the Lambda simpler
 
