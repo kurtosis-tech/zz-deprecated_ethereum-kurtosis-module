@@ -5,6 +5,9 @@
 ### Changes
 * Made the instructions in the README for running the Lambda simpler
 
+### Removals
+* Removed the world-public download token in CircleCI config when installing Kurtosis CLI, as it's no longer needed
+
 # 0.2.5
 ### Features
 * Upgraded to [Lambda API Lib 0.9.2](https://github.com/kurtosis-tech/kurtosis-lambda-api-lib/blob/develop/docs/changelog.md#092)
