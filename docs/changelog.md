@@ -1,5 +1,9 @@
 # TBD
 
+# 0.3.1
+### Fixes
+* Fix broken README links
+
 # 0.3.0
 ### Features
 * Run the module in CI, for extra verification
