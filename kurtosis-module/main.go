@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/kurtosis-tech/ethereum-kurtosis-lambda/kurtosis-lambda/impl"
+	"github.com/kurtosis-tech/ethereum-kurtosis-lambda/kurtosis-module/impl"
 	"github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang/lib/execution"
 	"github.com/sirupsen/logrus"
 	"os"

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	static_files_consts "github.com/kurtosis-tech/ethereum-kurtosis-lambda/kurtosis-lambda/static-files-consts"
+	static_files_consts "github.com/kurtosis-tech/ethereum-kurtosis-lambda/kurtosis-module/static-files-consts"
 	"github.com/kurtosis-tech/kurtosis-client/golang/lib/networks"
 	"github.com/kurtosis-tech/kurtosis-client/golang/lib/services"
 	"github.com/palantir/stacktrace"
@@ -66,7 +66,7 @@ func NewEthereumKurtosisLambda() *EthereumKurtosisLambda {
 func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, serializedParams string) (serializedResult string, resultError error) {
 	logrus.Infof("Ethereum Kurtosis Lambda receives serializedParams '%v'", serializedParams)
 	serializedParamsBytes := []byte(serializedParams)
-	var params LambdaAPIExecuteArgs
+	var params ModuleAPIExecuteArgs
 	if err := json.Unmarshal(serializedParamsBytes, &params); err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the Ethereum Kurtosis Lambda serialized params with value '%v'", serializedParams)
 	}
@@ -86,7 +86,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
 	}
 
-	ethereumKurtosisLambdaResult := &LambdaAPIExecuteResult{
+	ethereumKurtosisLambdaResult := &ModuleAPIExecuteResult{
 		BootnodeServiceID:     bootnodeServiceID,
 		NodeInfo:              allNodeInfo,
 		SignerKeystoreContent: signerKeystoreContent,
@@ -110,7 +110,7 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 func startEthBootnode(networkCtx *networks.NetworkContext) (
 	nodeServiceCtx *services.ServiceContext,
 	enr string,
-	nodeInfo *LambdaAPINodeInfo,
+	nodeInfo *ModuleAPIEthereumNodeInfo,
 	resultErr error,
 ) {
 	containerConfigSupplier := getBootnodeContainerConfigSupplier()
@@ -139,7 +139,7 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 		return nil, "", nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs:\n%v", cmd, logOutput)
 	}
 
-	lambdaApiNodeInfo := &LambdaAPINodeInfo{
+	lambdaApiNodeInfo := &ModuleAPIEthereumNodeInfo{
 		IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
 		ExposedPortsSet:            usedPortsSet,
 		PortBindingsOnLocalMachine: hostPortBindings,
@@ -150,14 +150,14 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 
 func startEthNodes(
 	networkCtx *networks.NetworkContext,
-) (map[services.ServiceID]*LambdaAPINodeInfo, *services.ServiceContext, error) {
+) (map[services.ServiceID]*ModuleAPIEthereumNodeInfo, *services.ServiceContext, error) {
 	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(networkCtx)
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred starting the Ethereum bootnode")
 	}
 
 	// Start all child nodes without waiting for them to become available, to speed up startup
-	childNodeInfo := map[services.ServiceID]*LambdaAPINodeInfo{}
+	childNodeInfo := map[services.ServiceID]*ModuleAPIEthereumNodeInfo{}
 	allNodeServiceCtxs := map[services.ServiceID]*services.ServiceContext{
 		bootnodeServiceID: bootnodeServiceCtx,
 	}
@@ -173,7 +173,7 @@ func startEthNodes(
 		logrus.Infof("Added Ethereum node '%v' with host port bindings: %+v ", serviceId, hostPortBindings)
 
 
-		lambdaApiNodeInfo := &LambdaAPINodeInfo{
+		lambdaApiNodeInfo := &ModuleAPIEthereumNodeInfo{
 			IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
 			ExposedPortsSet:            usedPortsSet,
 			PortBindingsOnLocalMachine: hostPortBindings,
@@ -258,7 +258,7 @@ func startEthNodes(
 		}
 	}
 
-	allNodeInfo := map[services.ServiceID]*LambdaAPINodeInfo{
+	allNodeInfo := map[services.ServiceID]*ModuleAPIEthereumNodeInfo{
 		bootnodeServiceID: bootnodeInfo,
 	}
 	for childServiceId, childInfo := range childNodeInfo {

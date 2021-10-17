@@ -19,7 +19,7 @@ COPY . .
 RUN go test ./...
 
 # Build the application
-RUN GOOS=linux go build -o kurtosis-lambda.bin ./kurtosis-lambda/main.go
+RUN GOOS=linux go build -o kurtosis-module.bin ./kurtosis-module/main.go
 
 # ============= Execution Stage ================
 FROM alpine:3.12 AS execution
@@ -27,11 +27,11 @@ FROM alpine:3.12 AS execution
 WORKDIR /run
 
 # Copy the code into the container
-COPY --from=builder /build/kurtosis-lambda.bin .
+COPY --from=builder /build/kurtosis-module.bin .
 
 # Copy local static files inside the testsuite image
-COPY kurtosis-lambda/static-files /static-files
+COPY kurtosis-module/static-files /static-files
 
-# Execute Lambda
-CMD ./kurtosis-lambda.bin
+# Execute module
+CMD ./kurtosis-module.bin
 
