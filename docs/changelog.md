@@ -1,4 +1,6 @@
 # TBD
+
+# 0.3.0
 ### Features
 * Run the module in CI, for extra verification
 
