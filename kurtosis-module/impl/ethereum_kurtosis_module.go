@@ -56,19 +56,19 @@ var usedPortsSet = map[string]bool{
 	fmt.Sprintf("%v/udp", discoveryPort): true,
 }
 
-type EthereumKurtosisLambda struct {
+type EthereumKurtosisModule struct {
 }
 
-func NewEthereumKurtosisLambda() *EthereumKurtosisLambda {
-	return &EthereumKurtosisLambda{}
+func NewEthereumKurtosisModule() *EthereumKurtosisModule {
+	return &EthereumKurtosisModule{}
 }
 
-func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, serializedParams string) (serializedResult string, resultError error) {
-	logrus.Infof("Ethereum Kurtosis Lambda receives serializedParams '%v'", serializedParams)
+func (e EthereumKurtosisModule) Execute(networkCtx *networks.NetworkContext, serializedParams string) (serializedResult string, resultError error) {
+	logrus.Infof("Serialized execute params '%v'", serializedParams)
 	serializedParamsBytes := []byte(serializedParams)
 	var params ModuleAPIExecuteArgs
 	if err := json.Unmarshal(serializedParamsBytes, &params); err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred deserializing the Ethereum Kurtosis Lambda serialized params with value '%v'", serializedParams)
+		return "", stacktrace.Propagate(err, "An error occurred deserializing the serialized params with value '%v'", serializedParams)
 	}
 
 	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(networkCtx)
@@ -86,22 +86,22 @@ func (e EthereumKurtosisLambda) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
 	}
 
-	ethereumKurtosisLambdaResult := &ModuleAPIExecuteResult{
+	resultObj := &ModuleAPIExecuteResult{
 		BootnodeServiceID:     bootnodeServiceID,
 		NodeInfo:              allNodeInfo,
 		SignerKeystoreContent: signerKeystoreContent,
 		SignerAccountPassword: signerAccountPasswordContent,
 	}
 
-	result, err := json.Marshal(ethereumKurtosisLambdaResult)
+	resultBytes, err := json.Marshal(resultObj)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred serializing the Ethereum Kurtosis Lambda Result with value '%+v'", ethereumKurtosisLambdaResult)
+		return "", stacktrace.Propagate(err, "An error occurred serializing the result object '%+v'", resultObj)
 	}
-	stringResult := string(result)
+	resultStr := string(resultBytes)
 
-	logrus.Infof("Ethereum Kurtosis Lambda Result value: %+v", ethereumKurtosisLambdaResult)
-	logrus.Info("Ethereum Kurtosis Lambda executed successfully")
-	return stringResult, nil
+	logrus.Infof("Result string: %v", resultStr)
+	logrus.Info("Ethereum Kurtosis module executed successfully")
+	return resultStr, nil
 }
 
 // ====================================================================================================
@@ -139,13 +139,13 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 		return nil, "", nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs:\n%v", cmd, logOutput)
 	}
 
-	lambdaApiNodeInfo := &ModuleAPIEthereumNodeInfo{
+	moduleApiNodeInfo := &ModuleAPIEthereumNodeInfo{
 		IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
 		ExposedPortsSet:            usedPortsSet,
 		PortBindingsOnLocalMachine: hostPortBindings,
 	}
 
-	return serviceCtx, logOutput, lambdaApiNodeInfo, nil
+	return serviceCtx, logOutput, moduleApiNodeInfo, nil
 }
 
 func startEthNodes(
@@ -173,13 +173,13 @@ func startEthNodes(
 		logrus.Infof("Added Ethereum node '%v' with host port bindings: %+v ", serviceId, hostPortBindings)
 
 
-		lambdaApiNodeInfo := &ModuleAPIEthereumNodeInfo{
+		moduleApiNodeInfo := &ModuleAPIEthereumNodeInfo{
 			IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
 			ExposedPortsSet:            usedPortsSet,
 			PortBindingsOnLocalMachine: hostPortBindings,
 		}
 
-		childNodeInfo[serviceId] = lambdaApiNodeInfo
+		childNodeInfo[serviceId] = moduleApiNodeInfo
 		allNodeServiceCtxs[serviceId] = serviceCtx
 	}
 
@@ -196,7 +196,7 @@ func startEthNodes(
 	for childServiceId := range childNodeInfo {
 		childServiceCtx, found := allNodeServiceCtxs[childServiceId]
 		if !found {
-			return nil, nil, stacktrace.NewError("No service context found for child node '%v'; this is a bug with this Lambda", childServiceId)
+			return nil, nil, stacktrace.NewError("No service context found for child node '%v'; this is a bug with this module", childServiceId)
 		}
 
 		childPeers := []string{}
@@ -216,7 +216,7 @@ func startEthNodes(
 	for childServiceId, childPeersToConnect := range peersToConnectPerNode {
 		childServiceCtx, found := allNodeServiceCtxs[childServiceId]
 		if !found {
-			return nil, nil, stacktrace.NewError("No service context for child '%v'; this is a bug with this Lambda", childServiceId)
+			return nil, nil, stacktrace.NewError("No service context for child '%v'; this is a bug with this module", childServiceId)
 		}
 		for _, peerEnode := range childPeersToConnect {
 			if err := addPeer(childServiceCtx.GetIPAddress(), peerEnode); err != nil {

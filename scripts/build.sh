@@ -19,7 +19,7 @@ if ! [ -f "${root_dirpath}"/.dockerignore ]; then
   exit 1
 fi
 
-get_docker_image_tag_script_filepath="${script_dirpath}/${GET_DOCKER_TAG_SCRIPT_FILENAME}"
+get_docker_image_tag_script_filepath="${script_dirpath}/${GET_DOCKER_IMAGE_TAG_SCRIPT_FILENAME}"
 if ! docker_tag="$(bash "${get_docker_image_tag_script_filepath}")"; then
     echo "Error: Couldn't get the Docker image tag" >&2
     exit 1
