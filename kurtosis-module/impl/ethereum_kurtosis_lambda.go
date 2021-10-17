@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	static_files_consts "github.com/kurtosis-tech/ethereum-kurtosis-lambda/kurtosis-module/static-files-consts"
+	static_files_consts "github.com/kurtosis-tech/ethereum-kurtosis-module/kurtosis-module/static-files-consts"
 	"github.com/kurtosis-tech/kurtosis-client/golang/lib/networks"
 	"github.com/kurtosis-tech/kurtosis-client/golang/lib/services"
 	"github.com/palantir/stacktrace"

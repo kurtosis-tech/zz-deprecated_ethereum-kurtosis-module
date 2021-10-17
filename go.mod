@@ -1,4 +1,4 @@
-module github.com/kurtosis-tech/ethereum-kurtosis-lambda
+module github.com/kurtosis-tech/ethereum-kurtosis-module
 
 go 1.15
 
