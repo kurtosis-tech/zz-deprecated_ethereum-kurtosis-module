@@ -1,7 +1,6 @@
 version: 2.1
 
 orbs:
-  aws-s3: circleci/aws-s3@2.0.0
   kurtosis-docs-checker: kurtosis-tech/docs-checker@0.2.0
 
 executors:
@@ -31,6 +30,16 @@ jobs:
 
       - run: bash ./scripts/build.sh
 
+      - run: |
+          echo "deb [trusted=yes] https://apt.fury.io/kurtosis-tech/ /" | sudo tee /etc/apt/sources.list.d/kurtosis.list
+          sudo apt update
+          sudo apt install kurtosis-cli
+
+      - run: |
+          source scripts/_constants.env
+          docker_image_tag="$(bash ./scripts/get-docker-image-tag.sh)"
+          kurtosis module exec "${IMAGE_ORG_AND_REPO}:${docker_image_tag}"
+
   push_artifacts:
     executor: ubuntu_vm
     steps:
@@ -41,11 +50,11 @@ jobs:
 
       - run: |
           set -euo pipefail
-          ORG_AND_IMAGE="kurtosistech/ethereum-kurtosis-lambda"
-          version_to_publish="$(bash scripts/get-docker-image-tag.sh)"
+          source scripts/_constants.env
+          version_to_publish="$(bash "scripts/${GET_DOCKER_IMAGE_TAG_SCRIPT_FILENAME}")"
           echo "Version that will be published: ${version_to_publish}"
-          image_name_with_version="${ORG_AND_IMAGE}:${version_to_publish}"
-          image_name_no_version="${ORG_AND_IMAGE}:latest"
+          image_name_with_version="${IMAGE_ORG_AND_REPO}:${version_to_publish}"
+          image_name_no_version="${IMAGE_ORG_AND_REPO}:latest"
           docker tag "${image_name_with_version}" "${image_name_no_version}"
           docker push "${image_name_with_version}"
           docker push "${image_name_no_version}"
