@@ -2,7 +2,7 @@ package impl
 
 import (
 	"encoding/json"
-	"github.com/kurtosis-tech/kurtosis-lambda-api-lib/golang/lib/kurtosis_lambda"
+	"github.com/kurtosis-tech/kurtosis-module-api-lib/golang/lib/kurtosis_modules"
 	"github.com/palantir/stacktrace"
 	"github.com/sirupsen/logrus"
 )
@@ -11,17 +11,17 @@ const(
 	defaultLogLevel = "info"
 )
 
-type EthereumKurtosisLambdaConfigurator struct{}
+type EthereumKurtosisModuleConfigurator struct{}
 
-func NewEthereumKurtosisLambdaConfigurator() *EthereumKurtosisLambdaConfigurator {
-	return &EthereumKurtosisLambdaConfigurator{}
+func NewEthereumKurtosisModuleConfigurator() *EthereumKurtosisModuleConfigurator {
+	return &EthereumKurtosisModuleConfigurator{}
 }
 
-func (t EthereumKurtosisLambdaConfigurator) ParseParamsAndCreateKurtosisLambda(serializedCustomParamsStr string) (kurtosis_lambda.KurtosisLambda, error) {
+func (t EthereumKurtosisModuleConfigurator) ParseParamsAndCreateExecutableModule(serializedCustomParamsStr string) (kurtosis_modules.ExecutableKurtosisModule, error) {
 	serializedCustomParamsBytes := []byte(serializedCustomParamsStr)
-	var args LambdaInitArgs
+	var args ModuleInitArgs
 	if err := json.Unmarshal(serializedCustomParamsBytes, &args); err != nil {
-		return nil, stacktrace.Propagate(err, "An error occurred deserializing the Kurtosis Lambda serialized custom params with value '%v", serializedCustomParamsStr)
+		return nil, stacktrace.Propagate(err, "An error occurred deserializing the Kurtosis module serialized custom params with value '%v", serializedCustomParamsStr)
 	}
 
 	err := setLogLevel(args.LogLevel)
@@ -29,9 +29,9 @@ func (t EthereumKurtosisLambdaConfigurator) ParseParamsAndCreateKurtosisLambda(s
 		return nil, stacktrace.Propagate(err, "An error occurred setting the log level")
 	}
 
-	lambda := NewEthereumKurtosisLambda()
+	module := NewEthereumKurtosisModule()
 
-	return lambda, nil
+	return module, nil
 }
 
 func setLogLevel(logLevelStr string) error {

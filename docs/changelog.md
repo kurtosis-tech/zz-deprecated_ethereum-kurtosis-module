@@ -1,12 +1,17 @@
 # TBD
 ### Features
-* Run the Lambda in CI, for extra verification
+* Run the module in CI, for extra verification
 
 ### Changes
-* Made the instructions in the README for running the Lambda simpler
+* Made the instructions in the README for running the module simpler
+* Use the new module API lib, which replaces all references of "Lambda" with "module"
 
 ### Removals
 * Removed the world-public download token in CircleCI config when installing Kurtosis CLI, as it's no longer needed
+
+### Breaking Changes
+* Upgrade to the [module API lib 0.10.0](https://github.com/kurtosis-tech/kurtosis-module-api-lib/blob/develop/docs/changelog.md#0100), which replaces all references of "Lambda" with "module"
+    * Users will need the latest version of Kurtosis CLI which has `module exec` rather than `lambda exec` to run this NEAR module
 
 # 0.2.5
 ### Features
