@@ -1,4 +1,6 @@
 # TBD
+### Fixes
+* Upgrade to the latest Module API lib, as the module is currently broken
 
 # 0.3.1
 ### Fixes
