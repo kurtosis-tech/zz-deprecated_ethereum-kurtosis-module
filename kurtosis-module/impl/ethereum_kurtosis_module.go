@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	static_files_consts "github.com/kurtosis-tech/ethereum-kurtosis-module/kurtosis-module/static-files-consts"
-	"github.com/kurtosis-tech/kurtosis-client/golang/lib/networks"
-	"github.com/kurtosis-tech/kurtosis-client/golang/lib/services"
-	"github.com/palantir/stacktrace"
+	"github.com/kurtosis-tech/kurtosis-core-api-lib/api/golang/lib/enclaves"
+	"github.com/kurtosis-tech/kurtosis-core-api-lib/api/golang/lib/services"
+	"github.com/kurtosis-tech/stacktrace"
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -23,10 +23,10 @@ import (
 const (
 	ethereumDockerImageName = "ethereum/client-go:v1.10.8"
 
-	rpcPort       uint32 = 8545
-	wsPort        uint32 = 8546
-	discoveryPort uint32 = 30303
-	subnetRange          = "/24"
+	rpcPortNum       uint16 = 8545
+	wsPortNum        uint16 = 8546
+	discoveryPortNum uint16 = 30303
+	subnetRange             = "/24"
 
 	bootnodeServiceID           = "bootnode"
 	childEthNodeServiceIdPrefix = "ethereum-node-"
@@ -47,13 +47,22 @@ const (
 
 	maxNumPeerCountValidationAttempts      = 5
 	timeBetweenPeerCountValidationAttempts = 500 * time.Millisecond
+
+	// Port IDs
+	rpcPortId = "rpc"
+	wsPortId = "ws"
+	tcpDiscoveryPortId = "tcp-discovery"
+	udpDiscoveryPortId = "udp-discovery"
+
+	jsonOutputPrefixStr = ""
+	jsonOutputIndentStr = "  "
 )
 
-var usedPortsSet = map[string]bool{
-	fmt.Sprintf("%v/tcp", rpcPort):               true,
-	fmt.Sprintf("%v/tcp", wsPort):        true,
-	fmt.Sprintf("%v/tcp", discoveryPort): true,
-	fmt.Sprintf("%v/udp", discoveryPort): true,
+var usedPorts = map[string]*services.PortSpec{
+	rpcPortId: services.NewPortSpec(rpcPortNum, services.PortProtocol_TCP),
+	wsPortId: services.NewPortSpec(wsPortNum, services.PortProtocol_TCP),
+	tcpDiscoveryPortId: services.NewPortSpec(discoveryPortNum, services.PortProtocol_TCP),
+	udpDiscoveryPortId: services.NewPortSpec(discoveryPortNum, services.PortProtocol_UDP),
 }
 
 type EthereumKurtosisModule struct {
@@ -63,7 +72,7 @@ func NewEthereumKurtosisModule() *EthereumKurtosisModule {
 	return &EthereumKurtosisModule{}
 }
 
-func (e EthereumKurtosisModule) Execute(networkCtx *networks.NetworkContext, serializedParams string) (serializedResult string, resultError error) {
+func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, serializedParams string) (serializedResult string, resultError error) {
 	logrus.Infof("Serialized execute params '%v'", serializedParams)
 	serializedParamsBytes := []byte(serializedParams)
 	var params ModuleAPIExecuteArgs
@@ -71,7 +80,7 @@ func (e EthereumKurtosisModule) Execute(networkCtx *networks.NetworkContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the serialized params with value '%v'", serializedParams)
 	}
 
-	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(networkCtx)
+	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
 	}
@@ -93,7 +102,7 @@ func (e EthereumKurtosisModule) Execute(networkCtx *networks.NetworkContext, ser
 		SignerAccountPassword: signerAccountPasswordContent,
 	}
 
-	resultBytes, err := json.Marshal(resultObj)
+	resultBytes, err := json.MarshalIndent(resultObj, jsonOutputPrefixStr, jsonOutputIndentStr)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred serializing the result object '%+v'", resultObj)
 	}
@@ -107,7 +116,7 @@ func (e EthereumKurtosisModule) Execute(networkCtx *networks.NetworkContext, ser
 // ====================================================================================================
 //                                       Private helper functions
 // ====================================================================================================
-func startEthBootnode(networkCtx *networks.NetworkContext) (
+func startEthBootnode(enclaveCtx *enclaves.EnclaveContext) (
 	nodeServiceCtx *services.ServiceContext,
 	enr string,
 	nodeInfo *ModuleAPIEthereumNodeInfo,
@@ -115,16 +124,21 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 ) {
 	containerConfigSupplier := getBootnodeContainerConfigSupplier()
 
-	serviceCtx, hostPortBindings, err := networkCtx.AddService(bootnodeServiceID, containerConfigSupplier)
+	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, containerConfigSupplier)
 	if err != nil {
 		return nil, "", nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
 	}
 
-	if err := networkCtx.WaitForHttpPostEndpointAvailability(bootnodeServiceID, rpcPort, "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
+	if err := enclaveCtx.WaitForHttpPostEndpointAvailability(bootnodeServiceID, uint32(rpcPortNum), "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
+
 		return nil, "", nil, stacktrace.Propagate(err, "An error occurred waiting for service with ID '%v' to start", bootnodeServiceID)
 	}
 
-	logrus.Infof("Added Ethereum bootnode service with IP: %v and host port bindings: %+v", serviceCtx.GetIPAddress(), hostPortBindings)
+	logrus.Infof(
+		"Added Ethereum bootnode service with public IP: %v and public ports: %+v",
+		serviceCtx.GetMaybePublicIPAddress(),
+		serviceCtx.GetPublicPorts(),
+	)
 
 	cmd := "geth attach data/geth.ipc --exec admin.nodeInfo.enr"
 	exitCode, logOutput, err := serviceCtx.ExecCommand([]string{
@@ -139,19 +153,18 @@ func startEthBootnode(networkCtx *networks.NetworkContext) (
 		return nil, "", nil, stacktrace.NewError("Executing command '%v' returned an failing exit code with logs:\n%v", cmd, logOutput)
 	}
 
-	moduleApiNodeInfo := &ModuleAPIEthereumNodeInfo{
-		IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
-		ExposedPortsSet:            usedPortsSet,
-		PortBindingsOnLocalMachine: hostPortBindings,
+	apiNodeInfo, err := getApiNodeObjFromNodeServiceCtx(serviceCtx)
+	if err != nil {
+		return nil, "", nil, stacktrace.Propagate(err, "An error occurred getting the node info API object from the boot node's service context")
 	}
 
-	return serviceCtx, logOutput, moduleApiNodeInfo, nil
+	return serviceCtx, logOutput, apiNodeInfo, nil
 }
 
 func startEthNodes(
-	networkCtx *networks.NetworkContext,
+	enclaveCtx *enclaves.EnclaveContext,
 ) (map[services.ServiceID]*ModuleAPIEthereumNodeInfo, *services.ServiceContext, error) {
-	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(networkCtx)
+	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx)
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred starting the Ethereum bootnode")
 	}
@@ -166,26 +179,28 @@ func startEthNodes(
 
 		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr)
 
-		serviceCtx, hostPortBindings, err := networkCtx.AddService(serviceId, containerConfigSupplier)
+		serviceCtx, err := enclaveCtx.AddService(serviceId, containerConfigSupplier)
 		if err != nil {
 			return nil, nil, stacktrace.Propagate(err, "An error occurred adding Ethereum node with service ID '%v'", serviceId)
 		}
-		logrus.Infof("Added Ethereum node '%v' with host port bindings: %+v ", serviceId, hostPortBindings)
+		logrus.Infof(
+			"Added Ethereum child node service with public IP: %v and public ports: %+v",
+			serviceCtx.GetMaybePublicIPAddress(),
+			serviceCtx.GetPublicPorts(),
+		)
 
-
-		moduleApiNodeInfo := &ModuleAPIEthereumNodeInfo{
-			IPAddrInsideNetwork:        serviceCtx.GetIPAddress(),
-			ExposedPortsSet:            usedPortsSet,
-			PortBindingsOnLocalMachine: hostPortBindings,
+		apiNodeInfo, err := getApiNodeObjFromNodeServiceCtx(serviceCtx)
+		if err != nil {
+			return nil, nil, stacktrace.Propagate(err, "An error occurred getting the node info API object from the service context of child node '%v'", serviceId)
 		}
 
-		childNodeInfo[serviceId] = moduleApiNodeInfo
+		childNodeInfo[serviceId] = apiNodeInfo
 		allNodeServiceCtxs[serviceId] = serviceCtx
 	}
 
 	// Now after all child nodes are started, wait for them to become available
 	for childServiceId := range childNodeInfo {
-		if err := networkCtx.WaitForHttpPostEndpointAvailability(childServiceId, rpcPort, "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
+		if err := enclaveCtx.WaitForHttpPostEndpointAvailability(childServiceId, uint32(rpcPortNum), "", adminInfoRpcCall, waitEndpointInitialDelayMilliseconds, waitEndpointRetries, waitEndpointRetriesDelayMilliseconds, ""); err != nil {
 			return nil, nil, stacktrace.Propagate(err, "An error occurred waiting for child node with ID '%v' to start", childServiceId)
 		}
 	}
@@ -205,7 +220,7 @@ func startEthNodes(
 		}
 		peersToConnectPerNode[childServiceId] = childPeers
 
-		enodeAddr, err := getEnodeAddress(childServiceCtx.GetIPAddress())
+		enodeAddr, err := getEnodeAddress(childServiceCtx.GetPrivateIPAddress())
 		if err != nil {
 			return nil, nil, stacktrace.Propagate(err, "Couldn't get enode address for child node '%v'", childServiceId)
 		}
@@ -219,7 +234,7 @@ func startEthNodes(
 			return nil, nil, stacktrace.NewError("No service context for child '%v'; this is a bug with this module", childServiceId)
 		}
 		for _, peerEnode := range childPeersToConnect {
-			if err := addPeer(childServiceCtx.GetIPAddress(), peerEnode); err != nil {
+			if err := addPeer(childServiceCtx.GetPrivateIPAddress(), peerEnode); err != nil {
 				return nil, nil, stacktrace.Propagate(
 					err,
 					"An error occurred connecting peer enode '%v' to child with service ID '%v'",
@@ -268,6 +283,39 @@ func startEthNodes(
 	return allNodeInfo, bootnodeServiceCtx, nil
 }
 
+func getApiNodeObjFromNodeServiceCtx(serviceCtx *services.ServiceContext) (*ModuleAPIEthereumNodeInfo, error) {
+	publicPorts := serviceCtx.GetPublicPorts()
+
+	rpcPort, found := publicPorts[rpcPortId]
+	if !found {
+		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", rpcPortId)
+	}
+
+	wsPort, found := publicPorts[wsPortId]
+	if !found {
+		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", wsPortId)
+	}
+
+	tcpDiscoveryPort, found := publicPorts[tcpDiscoveryPortId]
+	if !found {
+		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", tcpDiscoveryPortId)
+	}
+
+	udpDiscoveryPort, found := publicPorts[udpDiscoveryPortId]
+	if !found {
+		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", udpDiscoveryPortId)
+	}
+
+	return &ModuleAPIEthereumNodeInfo{
+		IPAddrInsideNetwork:           serviceCtx.GetPrivateIPAddress(),
+		IPAddrOnHostMachine:           serviceCtx.GetMaybePublicIPAddress(),
+		RpcPortOnHostMachine:          rpcPort.GetNumber(),
+		WsPortOnHostMachine:           wsPort.GetNumber(),
+		TcpDiscoveryPortOnHostMachine: tcpDiscoveryPort.GetNumber(),
+		UdpDiscoveryPortOnHostMachine: udpDiscoveryPort.GetNumber(),
+	}, nil
+}
+
 func verifyExpectedNumberPeers(serviceId services.ServiceID, serviceCtx *services.ServiceContext, numExpectedPeers int) error {
 	cmd := "geth attach data/geth.ipc --exec admin.peers"
 	exitCode, logOutput, err := serviceCtx.ExecCommand([]string{
@@ -313,8 +361,8 @@ func getIPNet(ipAddr string) *net.IPNet {
 	return ipNet
 }
 
-func sendRpcCall(ipAddress string, rpcJsonString string, targetStruct interface{}) error {
-	url := fmt.Sprintf("http://%v:%v", ipAddress, rpcPort)
+func sendRpcCall(privateIpAddr string, rpcJsonString string, targetStruct interface{}) error {
+	url := fmt.Sprintf("http://%v:%v", privateIpAddr, rpcPortNum)
 	var jsonByteArray = []byte(rpcJsonString)
 
 	logrus.Debugf("Sending RPC call to '%v' with JSON body '%v'...", url, rpcJsonString)
@@ -324,7 +372,7 @@ func sendRpcCall(ipAddress string, rpcJsonString string, targetStruct interface{
 	}
 	resp, err := client.Post(url, jsonContentType, bytes.NewBuffer(jsonByteArray))
 	if err != nil {
-		return stacktrace.Propagate(err, "Failed to send RPC request to Geth node with ip '%v'", ipAddress)
+		return stacktrace.Propagate(err, "Failed to send RPC request to Geth node with ip '%v'", privateIpAddr)
 	}
 	defer resp.Body.Close()
 
@@ -350,11 +398,11 @@ func sendRpcCall(ipAddress string, rpcJsonString string, targetStruct interface{
 }
 
 // Geth gossiping is slowww, so we manually add nodes to speed it up
-func addPeer(ipAddress string, peerEnode string) error {
+func addPeer(privateIpAddr string, peerEnode string) error {
 	adminAddPeerRpcCall := fmt.Sprintf(`{"jsonrpc":"2.0", "method": "admin_addPeer", "params": ["%v"], "id":70}`, peerEnode)
 	logrus.Infof("Admin add peer rpc call: %v", adminAddPeerRpcCall)
 	addPeerResponse := new(EthAPIAddPeerResponse)
-	err := sendRpcCall(ipAddress, adminAddPeerRpcCall, addPeerResponse)
+	err := sendRpcCall(privateIpAddr, adminAddPeerRpcCall, addPeerResponse)
 	logrus.Infof("addPeer response: %+v", addPeerResponse)
 	if err != nil {
 		return stacktrace.Propagate(err, "Failed to send addPeer RPC call for enode %v", peerEnode)
@@ -363,17 +411,17 @@ func addPeer(ipAddress string, peerEnode string) error {
 		return stacktrace.NewError(
 			"Ethereum returned 'false' response to addPeer request to add enode '%v' to node with IP '%v'",
 			peerEnode,
-			ipAddress,
+			privateIpAddr,
 		)
 	}
 	return nil
 }
 
-func getEnodeAddress(ipAddress string) (string, error) {
+func getEnodeAddress(privateIpAddr string) (string, error) {
 	nodeInfoResponse := new(EthAPINodeInfoResponse)
-	err := sendRpcCall(ipAddress, adminInfoRpcCall, nodeInfoResponse)
+	err := sendRpcCall(privateIpAddr, adminInfoRpcCall, nodeInfoResponse)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "Failed to send admin node info RPC request to Geth node with ip %v", ipAddress)
+		return "", stacktrace.Propagate(err, "Failed to send admin node info RPC request to Geth node with ip %v", privateIpAddr)
 	}
 	return nodeInfoResponse.Result.Enode, nil
 }
@@ -434,7 +482,7 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 				ethNetworkId,
 				ipAddr,
 				ipAddr,
-				discoveryPort,
+				discoveryPortNum,
 				ipNet,
 				sharedDirectory.GetChildPath(static_files_consts.SignerAccountPasswordStaticFileName).GetAbsPathOnServiceContainer(),
 			),
@@ -443,7 +491,7 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 		containerConfig := services.NewContainerConfigBuilder(
 			ethereumDockerImageName,
 		).WithUsedPorts(
-			usedPortsSet,
+			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
 	    ).Build()
@@ -483,7 +531,7 @@ func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, s
 				ethNetworkId,
 				ipAddr,
 				ipAddr,
-				discoveryPort,
+				discoveryPortNum,
 				bootnodeEnr,
 			),
 		}
@@ -491,7 +539,7 @@ func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, s
 		containerConfig := services.NewContainerConfigBuilder(
 			ethereumDockerImageName,
 		).WithUsedPorts(
-			usedPortsSet,
+			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
 		).Build()
