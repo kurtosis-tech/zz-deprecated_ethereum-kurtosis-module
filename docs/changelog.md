@@ -1,4 +1,6 @@
 # TBD
+
+# 0.4.0
 ### Features
 * Upgrade to module-api-lib 0.12.3, to support the latest version of Kurtosis
 * Output JSON is now pretty-printed
