@@ -3,7 +3,7 @@ package impl
 import (
 	"encoding/json"
 	"github.com/kurtosis-tech/kurtosis-module-api-lib/golang/lib/kurtosis_modules"
-	"github.com/palantir/stacktrace"
+	"github.com/kurtosis-tech/stacktrace"
 	"github.com/sirupsen/logrus"
 )
 
