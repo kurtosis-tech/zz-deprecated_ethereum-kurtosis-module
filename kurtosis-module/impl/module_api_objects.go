@@ -1,9 +1,6 @@
 package impl
 
-import (
-	"github.com/kurtosis-tech/kurtosis-client/golang/kurtosis_core_rpc_api_bindings"
-	"github.com/kurtosis-tech/kurtosis-client/golang/lib/services"
-)
+import "github.com/kurtosis-tech/kurtosis-core-api-lib/api/golang/lib/services"
 
 // Struct representing the params that the module can be started with
 type ModuleInitArgs struct {
@@ -24,6 +21,9 @@ type ModuleAPIExecuteResult struct {
 
 type ModuleAPIEthereumNodeInfo struct {
 	IPAddrInsideNetwork string 			`json:"ip_addr_inside_network"`
-	ExposedPortsSet	map[string]bool		`json:"exposed_ports_set"`
-	PortBindingsOnLocalMachine map[string]*kurtosis_core_rpc_api_bindings.PortBinding `json:"port_bindings_on_local_machine"`
+	IPAddrOnHostMachine string 			`json:"ip_addr_on_host_machine"`
+	RpcPortOnHostMachine uint16			`json:"rpcPortOnHostMachine"`
+	WsPortOnHostMachine uint16			`json:"wsPortOnHostMachine"`
+	TcpDiscoveryPortOnHostMachine uint16			`json:"tcpDiscoveryPortOnHostMachine"`
+	UdpDiscoveryPortOnHostMachine uint16			`json:"udpDiscoveryPortOnHostMachine"`
 }
