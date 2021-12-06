@@ -53,6 +53,9 @@ const (
 	wsPortId = "ws"
 	tcpDiscoveryPortId = "tcp-discovery"
 	udpDiscoveryPortId = "udp-discovery"
+
+	jsonOutputPrefixStr = ""
+	jsonOutputIndentStr = "  "
 )
 
 var usedPorts = map[string]*services.PortSpec{
@@ -99,7 +102,7 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 		SignerAccountPassword: signerAccountPasswordContent,
 	}
 
-	resultBytes, err := json.Marshal(resultObj)
+	resultBytes, err := json.MarshalIndent(resultObj, jsonOutputPrefixStr, jsonOutputIndentStr)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred serializing the result object '%+v'", resultObj)
 	}

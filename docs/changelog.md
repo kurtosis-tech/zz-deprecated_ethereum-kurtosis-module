@@ -1,6 +1,7 @@
 # TBD
 ### Features
 * Upgrade to module-api-lib 0.12.3, to support the latest version of Kurtosis
+* Output JSON is now pretty-printed
 
 ### Breaking Changes
 * The JSON object reported by the module to represent each node used to have `ExposedPortsSet` and `PortBindingsOnLocalMachine` maps, but now has:
