@@ -2,6 +2,14 @@
 ### Features
 * Upgrade to module-api-lib 0.12.3, to support the latest version of Kurtosis
 
+### Breaking Changes
+* The JSON object reported by the module to represent each node used to have `ExposedPortsSet` and `PortBindingsOnLocalMachine` maps, but now has:
+    * `IPAddrOnHostMachine`
+    * `RpcPortOnHostMachine`
+    * `WsPortOnHostMachine`
+    * `TcpDiscoveryPortOnHostMachine`
+    * `UdpDiscoveryPortOnHostMachine`
+
 # 0.3.2
 ### Fixes
 * Upgrade to the latest Module API lib, as the module is currently broken
