@@ -284,35 +284,13 @@ func startEthNodes(
 }
 
 func getApiNodeObjFromNodeServiceCtx(serviceCtx *services.ServiceContext) (*ModuleAPIEthereumNodeInfo, error) {
-	publicPorts := serviceCtx.GetPublicPorts()
-
-	rpcPort, found := publicPorts[rpcPortId]
-	if !found {
-		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", rpcPortId)
-	}
-
-	wsPort, found := publicPorts[wsPortId]
-	if !found {
-		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", wsPortId)
-	}
-
-	tcpDiscoveryPort, found := publicPorts[tcpDiscoveryPortId]
-	if !found {
-		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", tcpDiscoveryPortId)
-	}
-
-	udpDiscoveryPort, found := publicPorts[udpDiscoveryPortId]
-	if !found {
-		return nil, stacktrace.NewError("Expected a port with ID '%v', but none was found", udpDiscoveryPortId)
-	}
-
 	return &ModuleAPIEthereumNodeInfo{
-		IPAddrInsideNetwork:           serviceCtx.GetPrivateIPAddress(),
-		IPAddrOnHostMachine:           serviceCtx.GetMaybePublicIPAddress(),
-		RpcPortOnHostMachine:          rpcPort.GetNumber(),
-		WsPortOnHostMachine:           wsPort.GetNumber(),
-		TcpDiscoveryPortOnHostMachine: tcpDiscoveryPort.GetNumber(),
-		UdpDiscoveryPortOnHostMachine: udpDiscoveryPort.GetNumber(),
+		IPAddrInsideNetwork: serviceCtx.GetPrivateIPAddress(),
+		IPAddrOnHostMachine: serviceCtx.GetMaybePublicIPAddress(),
+		RpcPortId:           rpcPortId,
+		WsPortId:            wsPortId,
+		TcpDiscoveryPortId:  tcpDiscoveryPortId,
+		UdpDiscoveryPortId:  udpDiscoveryPortId,
 	}, nil
 }
 
