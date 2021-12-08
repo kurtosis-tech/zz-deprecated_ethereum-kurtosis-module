@@ -1,4 +1,18 @@
 # TBD
+### Features
+* Return port IDs of the service ports so that users can get public & private ports by themselves
+
+### Breaking Changes
+* Removed the following fields from the response object:
+    * `rpcPortOnHostMachine` -> `rpc_port_on_host_machine`
+    * `wsPortOnHostMachine` -> `ws_port_on_host_machine`
+    * `tcpDiscoveryPortOnHostMachine` -> `tcp_discovery_port_on_host_machine`
+    * `udpDiscoveryPortOnHostMachine` -> `udp_discovery_port_on_host_machine`
+* Added the following fields to the response object:
+    * `rpc_port_id`
+    * `ws_port_id`
+    * `tcp_discovery_port_id`
+    * `udp_discovery_port_id`
 
 # 0.4.0
 ### Features
