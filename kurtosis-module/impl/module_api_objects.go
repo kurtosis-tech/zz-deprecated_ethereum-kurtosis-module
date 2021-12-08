@@ -22,8 +22,8 @@ type ModuleAPIExecuteResult struct {
 type ModuleAPIEthereumNodeInfo struct {
 	IPAddrInsideNetwork string 			`json:"ip_addr_inside_network"`
 	IPAddrOnHostMachine string 			`json:"ip_addr_on_host_machine"`
-	RpcPortOnHostMachine uint16			`json:"rpcPortOnHostMachine"`
-	WsPortOnHostMachine uint16			`json:"wsPortOnHostMachine"`
-	TcpDiscoveryPortOnHostMachine uint16			`json:"tcpDiscoveryPortOnHostMachine"`
-	UdpDiscoveryPortOnHostMachine uint16			`json:"udpDiscoveryPortOnHostMachine"`
+	RpcPortId string	`json:"rpc_port_id"`
+	WsPortId string	`json:"ws_port_id"`
+	TcpDiscoveryPortId string 	`json:"tcp_discovery_port_id"`
+	UdpDiscoveryPortId string 	`json:"udp_discovery_port_id"`
 }
