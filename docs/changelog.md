@@ -1,4 +1,6 @@
 # TBD
+
+# 0.5.1
 ### Fixes
 * Bugfix so that the module works with Kurtosis CLI 0.11
 
