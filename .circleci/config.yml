@@ -35,6 +35,8 @@ jobs:
           sudo apt update
           sudo apt install kurtosis-cli
 
+      # We skip sending metrics because we don't want to pollute them
+      - run: kurtosis config init dont-send-metrics
       - run: |
           source scripts/_constants.env
           docker_image_tag="$(bash ./scripts/get-docker-image-tag.sh)"
