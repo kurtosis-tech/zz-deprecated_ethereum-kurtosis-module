@@ -1,5 +1,9 @@
 # TBD
 
+# 0.5.1
+### Fixes
+* Bugfix so that the module works with Kurtosis CLI 0.11
+
 # 0.5.0
 ### Features
 * Return port IDs of the service ports so that users can get public & private ports by themselves

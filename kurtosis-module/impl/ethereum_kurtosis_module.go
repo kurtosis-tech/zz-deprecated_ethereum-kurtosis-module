@@ -49,18 +49,18 @@ const (
 	timeBetweenPeerCountValidationAttempts = 500 * time.Millisecond
 
 	// Port IDs
-	rpcPortId = "rpc"
-	wsPortId = "ws"
-	tcpDiscoveryPortId = "tcp-discovery"
-	udpDiscoveryPortId = "udp-discovery"
+	rpcPortId          = "rpc"
+	wsPortId           = "ws"
+	tcpDiscoveryPortId = "tcpDiscovery"
+	udpDiscoveryPortId = "udpDiscovery"
 
 	jsonOutputPrefixStr = ""
 	jsonOutputIndentStr = "  "
 )
 
 var usedPorts = map[string]*services.PortSpec{
-	rpcPortId: services.NewPortSpec(rpcPortNum, services.PortProtocol_TCP),
-	wsPortId: services.NewPortSpec(wsPortNum, services.PortProtocol_TCP),
+	rpcPortId:          services.NewPortSpec(rpcPortNum, services.PortProtocol_TCP),
+	wsPortId:           services.NewPortSpec(wsPortNum, services.PortProtocol_TCP),
 	tcpDiscoveryPortId: services.NewPortSpec(discoveryPortNum, services.PortProtocol_TCP),
 	udpDiscoveryPortId: services.NewPortSpec(discoveryPortNum, services.PortProtocol_UDP),
 }
@@ -424,10 +424,10 @@ func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName st
 }
 
 func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
-	containerConfigSupplier  := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+	containerConfigSupplier := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
 
 		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-		if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil{
+		if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
 			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
 		}
 
@@ -439,21 +439,21 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 			"/bin/sh",
 			"-c",
 			fmt.Sprintf(
-				"geth init --datadir data %v && " +
-					"geth " +
-					"--keystore %v " +
-					"--datadir data " +
-					"--networkid %v " +
-					"-http " +
-					"--http.api admin,eth,net,web3,miner,personal,txpool,debug " +
-					"--http.addr %v " +
-					"--http.corsdomain '*' " +
-					"--nat extip:%v " +
-					"--port %v " +
-					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --" +
-					"mine " +
-					"--allow-insecure-unlock " +
-					"--netrestrict %v " +
+				"geth init --datadir data %v && "+
+					"geth "+
+					"--keystore %v "+
+					"--datadir data "+
+					"--networkid %v "+
+					"-http "+
+					"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
+					"--http.addr %v "+
+					"--http.corsdomain '*' "+
+					"--nat extip:%v "+
+					"--port %v "+
+					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
+					"mine "+
+					"--allow-insecure-unlock "+
+					"--netrestrict %v "+
 					"--password %v",
 				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
 				keystoreFolder,
@@ -472,7 +472,7 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
-	    ).Build()
+		).Build()
 
 		return containerConfig, nil
 	}
@@ -480,11 +480,11 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 }
 
 func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
-	containerConfigSupplier  := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+	containerConfigSupplier := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
 
 		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
 		staticFileNames := []string{static_files_consts.GenesisStaticFileName}
-		if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil{
+		if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
 			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
 		}
 
@@ -492,18 +492,18 @@ func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, s
 			"/bin/sh",
 			"-c",
 			fmt.Sprintf(
-				"geth init --datadir data %v && " +
-					"geth " +
-					"--datadir data " +
-					"--networkid %v " +
-					"-http " +
-					"--http.api admin,eth,net,web3,miner,personal,txpool,debug " +
-					"--http.addr %v " +
-					"--http.corsdomain '*' " +
-					"--nat extip:%v " +
-					"--gcmode archive " +
-					"--syncmode full " +
-					"--port %v " +
+				"geth init --datadir data %v && "+
+					"geth "+
+					"--datadir data "+
+					"--networkid %v "+
+					"-http "+
+					"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
+					"--http.addr %v "+
+					"--http.corsdomain '*' "+
+					"--nat extip:%v "+
+					"--gcmode archive "+
+					"--syncmode full "+
+					"--port %v "+
 					"--bootnodes %v",
 				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
 				ethNetworkId,
@@ -536,7 +536,7 @@ func copyStaticFilesInServiceContainer(staticFilesNames []string, staticFilesFol
 	return nil
 }
 
-func copyStaticFileInServiceContainer(staticFileName string, staticFilesFolder string,sharedDirectory *services.SharedPath) error {
+func copyStaticFileInServiceContainer(staticFileName string, staticFilesFolder string, sharedDirectory *services.SharedPath) error {
 	testStaticFileFilePath := sharedDirectory.GetChildPath(staticFileName)
 
 	testStaticFilepath := filepath.Join(staticFilesFolder, staticFileName)
