@@ -446,10 +446,11 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 					"--networkid %v "+
 					"-http "+
 					"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
-					"--http.addr %v "+
+					"--http.addr=0.0.0.0 "+
+					"--http.port=%v "+
 					"--http.corsdomain '*' "+
 					"--nat extip:%v "+
-					"--port %v "+
+					"--port=%v "+
 					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
 					"mine "+
 					"--allow-insecure-unlock "+
@@ -458,7 +459,7 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
 				keystoreFolder,
 				ethNetworkId,
-				ipAddr,
+				rpcPortNum,
 				ipAddr,
 				discoveryPortNum,
 				ipNet,
@@ -498,16 +499,17 @@ func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, s
 					"--networkid %v "+
 					"-http "+
 					"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
-					"--http.addr %v "+
+					"--http.addr=0.0.0.0 "+
+					"--http.port=%v "+
 					"--http.corsdomain '*' "+
 					"--nat extip:%v "+
 					"--gcmode archive "+
 					"--syncmode full "+
-					"--port %v "+
+					"--port=%v "+
 					"--bootnodes %v",
 				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
 				ethNetworkId,
-				ipAddr,
+				rpcPortNum,
 				ipAddr,
 				discoveryPortNum,
 				bootnodeEnr,
