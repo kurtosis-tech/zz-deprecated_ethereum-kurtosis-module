@@ -1,6 +1,6 @@
 # TBD
 ### Changes
-* Replacing the private IP address in the '--http.addr' with the 0.0.0.0 value in order to get access from local host
+* Replaced the private IP address in the '--http.addr' with the 0.0.0.0 value in order to get access from local host
 * Specified the '--http.port' default value 
 
 # 0.5.1
