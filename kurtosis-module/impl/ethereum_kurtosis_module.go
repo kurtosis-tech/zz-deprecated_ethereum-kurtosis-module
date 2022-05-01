@@ -93,12 +93,12 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 
 	signerKeystoreContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerKeystoreFileName)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerKeystoreFileName)
+		return "", stacktrace.Propagate(err, "An error occurred getting static file content '%v'", static_files_consts.SignerKeystoreFileName)
 	}
 
 	signerAccountPasswordContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerAccountPasswordStaticFileName)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
+		return "", stacktrace.Propagate(err, "An error occurred getting static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
 	}
 
 	resultObj := &ModuleAPIExecuteResult{
@@ -415,7 +415,7 @@ func getEnodeAddress(privateIpAddr string) (string, error) {
 }
 
 func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName string) (string, error) {
-	absFilepathOnNode := path.Join(staticFilesMountpointOnNodes, staticFileName)
+	absFilepathOnNode := getMountedPathOnNodeContainer(staticFileName)
 	catStaticFileCmd := []string{
 		"cat",
 		absFilepathOnNode,
@@ -466,14 +466,14 @@ func getBootnodeContainerConfigSupplier(staticFilesArtifactId services.FilesArti
 					"--allow-insecure-unlock "+
 					"--netrestrict %v "+
 					"--password %v",
-				path.Join(staticFilesMountpointOnNodes, static_files_consts.GenesisStaticFileName),
-				path.Join(staticFilesMountpointOnNodes, static_files_consts.SignerKeystoreFileName),
+				getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
+				getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
 				ethNetworkId,
 				rpcPortNum,
 				ipAddr,
 				discoveryPortNum,
 				ipNet,
-				path.Join(staticFilesMountpointOnNodes, static_files_consts.SignerAccountPasswordStaticFileName),
+				getMountedPathOnNodeContainer(static_files_consts.SignerAccountPasswordStaticFileName),
 			),
 		}
 
@@ -525,7 +525,7 @@ func getEthNodeContainerConfigSupplier(
 					"--syncmode full "+
 					"--port=%v "+
 					"--bootnodes %v",
-				path.Join(staticFilesMountpointOnNodes, static_files_consts.GenesisStaticFileName),
+				getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
 				ethNetworkId,
 				rpcPortNum,
 				ipAddr,
@@ -547,6 +547,14 @@ func getEthNodeContainerConfigSupplier(
 		return containerConfig, nil
 	}
 	return containerConfigSupplier
+}
+
+func getMountedPathOnNodeContainer(staticFilename string) string {
+	return path.Join(
+		staticFilesMountpointOnNodes,
+		path.Base(static_files_consts.StaticFilesDirpathOnTestsuiteContainer),
+		staticFilename,
+	)
 }
 
 /*
