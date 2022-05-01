@@ -13,8 +13,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -56,6 +55,8 @@ const (
 
 	jsonOutputPrefixStr = ""
 	jsonOutputIndentStr = "  "
+
+	staticFilesMountpointOnNodes = "/files"
 )
 
 var usedPorts = map[string]*services.PortSpec{
@@ -80,19 +81,24 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the serialized params with value '%v'", serializedParams)
 	}
 
-	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx)
+	staticFilesArtifactId, err := enclaveCtx.UploadFiles(static_files_consts.StaticFilesDirpathOnTestsuiteContainer)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "An error occurred uploading the static files")
+	}
+
+	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx, staticFilesArtifactId)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
 	}
 
 	signerKeystoreContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerKeystoreFileName)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerKeystoreFileName)
+		return "", stacktrace.Propagate(err, "An error occurred getting static file content '%v'", static_files_consts.SignerKeystoreFileName)
 	}
 
 	signerAccountPasswordContent, err := getStaticFileContent(bootnodeServiceCtx, static_files_consts.SignerAccountPasswordStaticFileName)
 	if err != nil {
-		return "", stacktrace.Propagate(err, "An error occurred getting an static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
+		return "", stacktrace.Propagate(err, "An error occurred getting static file content '%v'", static_files_consts.SignerAccountPasswordStaticFileName)
 	}
 
 	resultObj := &ModuleAPIExecuteResult{
@@ -116,13 +122,16 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 // ====================================================================================================
 //                                       Private helper functions
 // ====================================================================================================
-func startEthBootnode(enclaveCtx *enclaves.EnclaveContext) (
+func startEthBootnode(
+	enclaveCtx *enclaves.EnclaveContext,
+	staticFilesArtifactId services.FilesArtifactID,
+) (
 	nodeServiceCtx *services.ServiceContext,
 	enr string,
 	nodeInfo *ModuleAPIEthereumNodeInfo,
 	resultErr error,
 ) {
-	containerConfigSupplier := getBootnodeContainerConfigSupplier()
+	containerConfigSupplier := getBootnodeContainerConfigSupplier(staticFilesArtifactId)
 
 	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, containerConfigSupplier)
 	if err != nil {
@@ -163,8 +172,9 @@ func startEthBootnode(enclaveCtx *enclaves.EnclaveContext) (
 
 func startEthNodes(
 	enclaveCtx *enclaves.EnclaveContext,
+	staticFilesArtifactId services.FilesArtifactID,
 ) (map[services.ServiceID]*ModuleAPIEthereumNodeInfo, *services.ServiceContext, error) {
-	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx)
+	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx, staticFilesArtifactId)
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred starting the Ethereum bootnode")
 	}
@@ -177,7 +187,7 @@ func startEthNodes(
 	for i := 1; i <= childEthNodeQuantity; i++ {
 		serviceId := services.ServiceID(childEthNodeServiceIdPrefix + strconv.Itoa(i))
 
-		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr)
+		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr, staticFilesArtifactId)
 
 		serviceCtx, err := enclaveCtx.AddService(serviceId, containerConfigSupplier)
 		if err != nil {
@@ -405,33 +415,33 @@ func getEnodeAddress(privateIpAddr string) (string, error) {
 }
 
 func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName string) (string, error) {
-
-	staticFileFilePath := serviceCtx.GetSharedDirectory().GetChildPath(staticFileName)
-
+	absFilepathOnNode := getMountedPathOnNodeContainer(staticFileName)
 	catStaticFileCmd := []string{
 		"cat",
-		staticFileFilePath.GetAbsPathOnServiceContainer(),
+		absFilepathOnNode,
 	}
 	exitCode, fileContents, err := serviceCtx.ExecCommand(catStaticFileCmd)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred executing command '%+v' to cat the static '%v' contents", catStaticFileCmd, staticFileName)
 	}
 	if exitCode != execCommandSuccessExitCode {
-		return "", stacktrace.NewError("Command '%+v' to cat the static file '%v' exited with non-successful exit code '%v'", catStaticFileCmd, staticFileFilePath.GetAbsPathOnServiceContainer(), exitCode)
+		return "", stacktrace.NewError("Command '%+v' to cat the static file '%v' exited with non-successful exit code '%v'", catStaticFileCmd, absFilepathOnNode, exitCode)
 	}
 
 	return fileContents, nil
 }
 
-func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
-	containerConfigSupplier := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+func getBootnodeContainerConfigSupplier(staticFilesArtifactId services.FilesArtifactID) func(ipAddr string) (*services.ContainerConfig, error) {
+	containerConfigSupplier := func(ipAddr string) (*services.ContainerConfig, error) {
 
-		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-		if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
-			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
-		}
+		/*
+			//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
+			if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
+				return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
+			}
 
-		keystoreFolder := filepath.Dir(sharedDirectory.GetChildPath(static_files_consts.SignerKeystoreFileName).GetAbsPathOnServiceContainer())
+			keystoreFolder := filepath.Dir(sharedDirectory.GetChildPath(static_files_consts.SignerKeystoreFileName).GetAbsPathOnServiceContainer())
+		*/
 
 		ipNet := getIPNet(ipAddr)
 
@@ -456,14 +466,14 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 					"--allow-insecure-unlock "+
 					"--netrestrict %v "+
 					"--password %v",
-				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
-				keystoreFolder,
+				getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
+				getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
 				ethNetworkId,
 				rpcPortNum,
 				ipAddr,
 				discoveryPortNum,
 				ipNet,
-				sharedDirectory.GetChildPath(static_files_consts.SignerAccountPasswordStaticFileName).GetAbsPathOnServiceContainer(),
+				getMountedPathOnNodeContainer(static_files_consts.SignerAccountPasswordStaticFileName),
 			),
 		}
 
@@ -473,21 +483,29 @@ func getBootnodeContainerConfigSupplier() func(ipAddr string, sharedDirectory *s
 			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
-		).Build()
+		).WithFiles(map[services.FilesArtifactID]string{
+			staticFilesArtifactId: staticFilesMountpointOnNodes,
+		}).Build()
 
 		return containerConfig, nil
 	}
 	return containerConfigSupplier
 }
 
-func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
-	containerConfigSupplier := func(ipAddr string, sharedDirectory *services.SharedPath) (*services.ContainerConfig, error) {
+func getEthNodeContainerConfigSupplier(
+	bootnodeEnr string,
+	staticFilesArtifactId services.FilesArtifactID,
+) func(ipAddr string) (*services.ContainerConfig, error) {
+	containerConfigSupplier := func(ipAddr string) (*services.ContainerConfig, error) {
 
-		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-		staticFileNames := []string{static_files_consts.GenesisStaticFileName}
-		if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
-			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
-		}
+		/*
+			//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
+			staticFileNames := []string{static_files_consts.GenesisStaticFileName}
+			if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
+				return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
+			}
+
+		*/
 
 		entryPointArgs := []string{
 			"/bin/sh",
@@ -507,7 +525,7 @@ func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, s
 					"--syncmode full "+
 					"--port=%v "+
 					"--bootnodes %v",
-				sharedDirectory.GetChildPath(static_files_consts.GenesisStaticFileName).GetAbsPathOnServiceContainer(),
+				getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
 				ethNetworkId,
 				rpcPortNum,
 				ipAddr,
@@ -522,13 +540,24 @@ func getEthNodeContainerConfigSupplier(bootnodeEnr string) func(ipAddr string, s
 			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
-		).Build()
+		).WithFiles(map[services.FilesArtifactID]string{
+			staticFilesArtifactId: staticFilesMountpointOnNodes,
+		}).Build()
 
 		return containerConfig, nil
 	}
 	return containerConfigSupplier
 }
 
+func getMountedPathOnNodeContainer(staticFilename string) string {
+	return path.Join(
+		staticFilesMountpointOnNodes,
+		path.Base(static_files_consts.StaticFilesDirpathOnTestsuiteContainer),
+		staticFilename,
+	)
+}
+
+/*
 func copyStaticFilesInServiceContainer(staticFilesNames []string, staticFilesFolder string, sharedDirectory *services.SharedPath) error {
 	for _, staticFileName := range staticFilesNames {
 		if err := copyStaticFileInServiceContainer(staticFileName, staticFilesFolder, sharedDirectory); err != nil {
@@ -554,3 +583,5 @@ func copyStaticFileInServiceContainer(staticFileName string, staticFilesFolder s
 	}
 	return nil
 }
+
+*/
