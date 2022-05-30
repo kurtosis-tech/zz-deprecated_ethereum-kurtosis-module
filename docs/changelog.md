@@ -1,4 +1,6 @@
 # TBD
+### Changes
+* Upgrades to module-api-lib 0.16.0 and core 1.54.1 which replace FilesArtifactID type with FilesArtifactUUID
 
 # 0.5.4
 ### Changes

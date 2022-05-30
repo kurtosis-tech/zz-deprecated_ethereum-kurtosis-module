@@ -81,12 +81,12 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the serialized params with value '%v'", serializedParams)
 	}
 
-	staticFilesArtifactId, err := enclaveCtx.UploadFiles(static_files_consts.StaticFilesDirpathOnTestsuiteContainer)
+	staticFilesArtifactUuid, err := enclaveCtx.UploadFiles(static_files_consts.StaticFilesDirpathOnTestsuiteContainer)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred uploading the static files")
 	}
 
-	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx, staticFilesArtifactId)
+	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx, staticFilesArtifactUuid)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
 	}
@@ -124,14 +124,14 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 // ====================================================================================================
 func startEthBootnode(
 	enclaveCtx *enclaves.EnclaveContext,
-	staticFilesArtifactId services.FilesArtifactID,
+	staticFilesArtifactUuid services.FilesArtifactUUID,
 ) (
 	nodeServiceCtx *services.ServiceContext,
 	enr string,
 	nodeInfo *ModuleAPIEthereumNodeInfo,
 	resultErr error,
 ) {
-	containerConfigSupplier := getBootnodeContainerConfigSupplier(staticFilesArtifactId)
+	containerConfigSupplier := getBootnodeContainerConfigSupplier(staticFilesArtifactUuid)
 
 	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, containerConfigSupplier)
 	if err != nil {
@@ -172,9 +172,9 @@ func startEthBootnode(
 
 func startEthNodes(
 	enclaveCtx *enclaves.EnclaveContext,
-	staticFilesArtifactId services.FilesArtifactID,
+	staticFilesArtifactUuid services.FilesArtifactUUID,
 ) (map[services.ServiceID]*ModuleAPIEthereumNodeInfo, *services.ServiceContext, error) {
-	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx, staticFilesArtifactId)
+	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx, staticFilesArtifactUuid)
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred starting the Ethereum bootnode")
 	}
@@ -187,7 +187,7 @@ func startEthNodes(
 	for i := 1; i <= childEthNodeQuantity; i++ {
 		serviceId := services.ServiceID(childEthNodeServiceIdPrefix + strconv.Itoa(i))
 
-		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr, staticFilesArtifactId)
+		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr, staticFilesArtifactUuid)
 
 		serviceCtx, err := enclaveCtx.AddService(serviceId, containerConfigSupplier)
 		if err != nil {
@@ -431,7 +431,7 @@ func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName st
 	return fileContents, nil
 }
 
-func getBootnodeContainerConfigSupplier(staticFilesArtifactId services.FilesArtifactID) func(ipAddr string) (*services.ContainerConfig, error) {
+func getBootnodeContainerConfigSupplier(staticFilesArtifactUuid services.FilesArtifactUUID) func(ipAddr string) (*services.ContainerConfig, error) {
 	containerConfigSupplier := func(ipAddr string) (*services.ContainerConfig, error) {
 
 		/*
@@ -483,8 +483,8 @@ func getBootnodeContainerConfigSupplier(staticFilesArtifactId services.FilesArti
 			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
-		).WithFiles(map[services.FilesArtifactID]string{
-			staticFilesArtifactId: staticFilesMountpointOnNodes,
+		).WithFiles(map[services.FilesArtifactUUID]string{
+			staticFilesArtifactUuid: staticFilesMountpointOnNodes,
 		}).Build()
 
 		return containerConfig, nil
@@ -494,7 +494,7 @@ func getBootnodeContainerConfigSupplier(staticFilesArtifactId services.FilesArti
 
 func getEthNodeContainerConfigSupplier(
 	bootnodeEnr string,
-	staticFilesArtifactId services.FilesArtifactID,
+	staticFilesArtifactUUid services.FilesArtifactUUID,
 ) func(ipAddr string) (*services.ContainerConfig, error) {
 	containerConfigSupplier := func(ipAddr string) (*services.ContainerConfig, error) {
 
@@ -540,8 +540,8 @@ func getEthNodeContainerConfigSupplier(
 			usedPorts,
 		).WithEntrypointOverride(
 			entryPointArgs,
-		).WithFiles(map[services.FilesArtifactID]string{
-			staticFilesArtifactId: staticFilesMountpointOnNodes,
+		).WithFiles(map[services.FilesArtifactUUID]string{
+			staticFilesArtifactUUid: staticFilesMountpointOnNodes,
 		}).Build()
 
 		return containerConfig, nil
