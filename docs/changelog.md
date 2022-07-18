@@ -1,5 +1,11 @@
 # TBD
 
+### Changes
+* Upgraded Ubuntu machine image in Circle CI configuration to version `ubuntu-2004:202201-02`
+* Migrate repo to use internal cli tool, `kudet`, for release workflow and getting docker image tags
+* Upgrade core to 1.55.2
+* Upgrade module-api-lib to 0.17.0
+
 # 0.5.5
 ### Changes
 * Upgrades to module-api-lib 0.16.0 and core 1.54.1 which replace FilesArtifactID type with FilesArtifactUUID
@@ -70,16 +76,16 @@
 * Removed the world-public download token in CircleCI config when installing Kurtosis CLI, as it's no longer needed
 
 ### Breaking Changes
-* Upgrade to the [module API lib 0.10.0](https://github.com/kurtosis-tech/kurtosis-module-api-lib/blob/develop/docs/changelog.md#0100), which replaces all references of "Lambda" with "module"
+* Upgrade to the module API lib 0.10.0 which replaces all references of "Lambda" with "module"
     * Users will need the latest version of Kurtosis CLI which has `module exec` rather than `lambda exec` to run this NEAR module
 
 # 0.2.5
 ### Features
-* Upgraded to [Lambda API Lib 0.9.2](https://github.com/kurtosis-tech/kurtosis-lambda-api-lib/blob/develop/docs/changelog.md#092)
+* Upgraded to Lambda API Lib 0.9.2
 
 # 0.2.4
 ### Features
-* Upgraded Kurt Lamba API Lib dependency to the latest version [Kurt Lambda API Lib 0.9.1](https://github.com/kurtosis-tech/kurtosis-lambda-api-lib/blob/develop/docs/changelog.md#091)
+* Upgraded Kurt Lamba API Lib dependency to the latest version Kurt Lambda API Lib 0.9.1
 
 # 0.2.3
 ### Features
