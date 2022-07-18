@@ -1,6 +1,7 @@
 # TBD
 ### Changes
 * Upgraded Ubuntu machine image in Circle CI configuration to version `ubuntu-2004:202201-02`
+* Migrate repo to use internal cli tool, `kudet`, for release workflow and getting docker image tags
 
 # 0.5.5
 ### Changes
