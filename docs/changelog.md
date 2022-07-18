@@ -1,4 +1,7 @@
 # TBD
+### Breaking Changes
+* Upgrade core to 1.55.2
+
 ### Changes
 * Upgraded Ubuntu machine image in Circle CI configuration to version `ubuntu-2004:202201-02`
 * Migrate repo to use internal cli tool, `kudet`, for release workflow and getting docker image tags
