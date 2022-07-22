@@ -39,6 +39,7 @@ jobs:
           kurtosis cluster set docker
           kurtosis engine start
           kurtosis module exec 'kurtosistech/ethereum-kurtosis-module:latest'
+      # this step will be always run even if the previous step fails, some steps are configured this way. More info here: https://circleci.com/docs/configuration-reference#steps
       - slack/notify:
           channel: engineering
           event: fail
