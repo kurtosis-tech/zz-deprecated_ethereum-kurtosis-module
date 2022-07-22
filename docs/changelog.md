@@ -1,7 +1,8 @@
 # TBD
+### Features
+* Added CircleCi `check_latest_version` workflow for running a scheduled pipeline every day to control successful module execution
 
 # 0.5.6
-
 ### Changes
 * Upgraded Ubuntu machine image in Circle CI configuration to version `ubuntu-2004:202201-02`
 * Migrate repo to use internal cli tool, `kudet`, for release workflow and getting docker image tags
