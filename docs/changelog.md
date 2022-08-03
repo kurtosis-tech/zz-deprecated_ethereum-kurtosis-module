@@ -1,6 +1,10 @@
 # TBD
 ### Features
-* Added CircleCi `check_latest_version` workflow for running a scheduled pipeline every day to control successful module execution
+- Added CircleCi `check_latest_version` workflow for running a scheduled pipeline every day to control successful module execution
+- Added `--http.vhosts=*` so that anyone can access the JSON-RPC API of the nodes
+
+### Changes
+- Changed the Ethereum network ID to `881239` (was `77813`) to reduce external peering requests
 
 # 0.5.6
 ### Changes
