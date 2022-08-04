@@ -1,5 +1,9 @@
 # TBD
 
+### Changes
+* Upgrade module-api-lib to 0.18.0
+* Upgrade core to 1.57.0
+
 # 0.5.7
 ### Features
 - Added CircleCi `check_latest_version` workflow for running a scheduled pipeline every day to control successful module execution
