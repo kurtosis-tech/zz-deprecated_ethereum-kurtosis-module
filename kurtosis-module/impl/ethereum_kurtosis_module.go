@@ -120,7 +120,9 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 }
 
 // ====================================================================================================
-//                                       Private helper functions
+//
+//	Private helper functions
+//
 // ====================================================================================================
 func startEthBootnode(
 	enclaveCtx *enclaves.EnclaveContext,
@@ -554,7 +556,6 @@ func getEthNodeContainerConfigSupplier(
 func getMountedPathOnNodeContainer(staticFilename string) string {
 	return path.Join(
 		staticFilesMountpointOnNodes,
-		path.Base(static_files_consts.StaticFilesDirpathOnTestsuiteContainer),
 		staticFilename,
 	)
 }
