@@ -42,7 +42,7 @@ const (
 	enodePrefix                = "enode://"
 	handshakeProtocol          = "eth: \"handshake\""
 
-	ethNetworkId = 77813
+	ethNetworkId = 881239
 
 	maxNumPeerCountValidationAttempts      = 5
 	timeBetweenPeerCountValidationAttempts = 500 * time.Millisecond
@@ -120,7 +120,9 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 }
 
 // ====================================================================================================
-//                                       Private helper functions
+//
+//	Private helper functions
+//
 // ====================================================================================================
 func startEthBootnode(
 	enclaveCtx *enclaves.EnclaveContext,
@@ -459,6 +461,7 @@ func getBootnodeContainerConfigSupplier(staticFilesArtifactUuid services.FilesAr
 					"--http.addr=0.0.0.0 "+
 					"--http.port=%v "+
 					"--http.corsdomain '*' "+
+					"--http.vhosts=* "+
 					"--nat extip:%v "+
 					"--port=%v "+
 					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
@@ -520,6 +523,7 @@ func getEthNodeContainerConfigSupplier(
 					"--http.addr=0.0.0.0 "+
 					"--http.port=%v "+
 					"--http.corsdomain '*' "+
+					"--http.vhosts=* "+
 					"--nat extip:%v "+
 					"--gcmode archive "+
 					"--syncmode full "+
@@ -552,7 +556,6 @@ func getEthNodeContainerConfigSupplier(
 func getMountedPathOnNodeContainer(staticFilename string) string {
 	return path.Join(
 		staticFilesMountpointOnNodes,
-		path.Base(static_files_consts.StaticFilesDirpathOnTestsuiteContainer),
 		staticFilename,
 	)
 }

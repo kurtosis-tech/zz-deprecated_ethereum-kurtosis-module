@@ -2,6 +2,36 @@
 ### Changes
 * Upgrade to core to 1.58.1 and module-api-lib to 0.21.1
 
+# 0.6.0
+### Changes
+* Upgrade module-api-lib to 0.21.0
+* Upgraded core to 1.58.0
+
+### Breaking Changes
+* Upgraded core to 1.58.0
+  * This changes how we archive and upload files inside a container. Adding a directory earlier would result in a nested archive with files inside a directory with the same name as the directory uploaded. Now the contents of the directory uploaded are available at root of the archive.
+  * Adding the above archive would have similar nesting but now you should be able to access files without any nesting.
+  * Users of the service can now access static files at `/files/` while they'd have to access them at `/files/static-files/` earlier.
+
+# 0.5.9
+### Changes
+* Upgrade module-api-lib to 0.20.0
+* Upgrade core to 1.57.6
+
+
+# 0.5.8
+### Changes
+* Upgrade module-api-lib to 0.18.0
+* Upgrade core to 1.57.0
+
+# 0.5.7
+### Features
+- Added CircleCi `check_latest_version` workflow for running a scheduled pipeline every day to control successful module execution
+- Added `--http.vhosts=*` so that anyone can access the JSON-RPC API of the nodes
+
+### Changes
+- Changed the Ethereum network ID to `881239` (was `77813`) to reduce external peering requests
+
 # 0.5.6
 ### Changes
 * Upgraded Ubuntu machine image in Circle CI configuration to version `ubuntu-2004:202201-02`
