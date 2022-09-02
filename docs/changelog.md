@@ -1,7 +1,8 @@
 # TBD
+### Changes
+* Upgrade to core to 1.58.1 and engine to 1.32.1
 
 # 0.5.6
-
 ### Changes
 * Upgraded Ubuntu machine image in Circle CI configuration to version `ubuntu-2004:202201-02`
 * Migrate repo to use internal cli tool, `kudet`, for release workflow and getting docker image tags
