@@ -1,5 +1,7 @@
 # TBD
 
+# 0.6.2
+
 ### Changes
 * Upgrade to core to 1.58.3 and module-api-lib to 0.21.2
 
