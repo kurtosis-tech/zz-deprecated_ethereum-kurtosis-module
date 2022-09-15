@@ -134,9 +134,9 @@ func startEthBootnode(
 	nodeInfo *ModuleAPIEthereumNodeInfo,
 	resultErr error,
 ) {
-	containerConfigSupplier := getBootnodeContainerConfig(staticFilesArtifactUuid)
+	getContainerConfig := getBootnodeContainerConfig(staticFilesArtifactUuid)
 
-	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, containerConfigSupplier)
+	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, getContainerConfig)
 	if err != nil {
 		return nil, "", nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
 	}
