@@ -82,13 +82,11 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the serialized params with value '%v'", serializedParams)
 	}
 
-	logrus.Infof("Uploading files")
 	staticFilesArtifactUuid, err := enclaveCtx.UploadFiles(static_files_consts.StaticFilesDirpathOnTestsuiteContainer)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred uploading the static files")
 	}
 
-	logrus.Infof("Starting eth nodes")
 	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx, staticFilesArtifactUuid)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
@@ -179,7 +177,6 @@ func startEthNodes(
 	enclaveCtx *enclaves.EnclaveContext,
 	staticFilesArtifactUuid services.FilesArtifactUUID,
 ) (map[services.ServiceID]*ModuleAPIEthereumNodeInfo, *services.ServiceContext, error) {
-	logrus.Infof("Starting boot node ...")
 	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx, staticFilesArtifactUuid)
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred starting the Ethereum bootnode")
