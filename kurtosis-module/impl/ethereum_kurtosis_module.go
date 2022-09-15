@@ -82,11 +82,13 @@ func (e EthereumKurtosisModule) Execute(enclaveCtx *enclaves.EnclaveContext, ser
 		return "", stacktrace.Propagate(err, "An error occurred deserializing the serialized params with value '%v'", serializedParams)
 	}
 
+	logrus.Infof("Uploading files")
 	staticFilesArtifactUuid, err := enclaveCtx.UploadFiles(static_files_consts.StaticFilesDirpathOnTestsuiteContainer)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred uploading the static files")
 	}
 
+	logrus.Infof("Starting eth nodes")
 	allNodeInfo, bootnodeServiceCtx, err := startEthNodes(enclaveCtx, staticFilesArtifactUuid)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "An error occurred starting the Ethereum child nodes")
@@ -177,6 +179,7 @@ func startEthNodes(
 	enclaveCtx *enclaves.EnclaveContext,
 	staticFilesArtifactUuid services.FilesArtifactUUID,
 ) (map[services.ServiceID]*ModuleAPIEthereumNodeInfo, *services.ServiceContext, error) {
+	logrus.Infof("Starting boot node ...")
 	bootnodeServiceCtx, bootnodeEnr, bootnodeInfo, err := startEthBootnode(enclaveCtx, staticFilesArtifactUuid)
 	if err != nil {
 		return nil, nil, stacktrace.Propagate(err, "An error occurred starting the Ethereum bootnode")
@@ -459,7 +462,6 @@ func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUU
 				"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
 				"mine "+
 				"--allow-insecure-unlock "+
-				"--netrestrict:"+privateIPAddrPlaceholder+"/24"+
 				"--password %v",
 			getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
 			getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
@@ -478,7 +480,9 @@ func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUU
 		entryPointArgs,
 	).WithFiles(map[services.FilesArtifactUUID]string{
 		staticFilesArtifactUuid: staticFilesMountpointOnNodes,
-	}).Build()
+	}).WithPrivateIPAddrPlaceholder(
+		privateIPAddrPlaceholder,
+	).Build()
 
 	return containerConfig
 }
