@@ -459,6 +459,7 @@ func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUU
 				"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
 				"mine "+
 				"--allow-insecure-unlock "+
+				"--netrestrict "+privateIPAddrPlaceholder+"/24 "+
 				"--password %v",
 			getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
 			getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
