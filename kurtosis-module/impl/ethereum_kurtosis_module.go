@@ -430,15 +430,6 @@ func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName st
 
 func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUUID) *services.ContainerConfig {
 
-	/*
-		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-		if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
-			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
-		}
-
-		keystoreFolder := filepath.Dir(sharedDirectory.GetChildPath(static_files_consts.SignerKeystoreFileName).GetAbsPathOnServiceContainer())
-	*/
-
 	entryPointArgs := []string{
 		"/bin/sh",
 		"-c",
