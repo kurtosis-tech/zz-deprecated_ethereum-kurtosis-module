@@ -57,7 +57,7 @@ const (
 
 	staticFilesMountpointOnNodes = "/files"
 
-	privateIPAddrPlaceholder = "KURTOSIS_PRIVATE_IP_ADDR_PLACEHOLDER"
+	privateIPAddressPlaceholder = "KURTOSIS_PRIVATE_IP_ADDR_PLACEHOLDER"
 )
 
 var usedPorts = map[string]*services.PortSpec{
@@ -454,12 +454,11 @@ func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUU
 				"--http.port=%v "+
 				"--http.corsdomain '*' "+
 				"--http.vhosts=* "+
-				"--nat extip:"+privateIPAddrPlaceholder+" "+
+				"--nat extip:"+privateIPAddressPlaceholder+" "+
 				"--port=%v "+
 				"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
 				"mine "+
 				"--allow-insecure-unlock "+
-				"--netrestrict "+privateIPAddrPlaceholder+"/24 "+
 				"--password %v",
 			getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
 			getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
@@ -479,7 +478,7 @@ func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUU
 	).WithFiles(map[services.FilesArtifactUUID]string{
 		staticFilesArtifactUuid: staticFilesMountpointOnNodes,
 	}).WithPrivateIPAddrPlaceholder(
-		privateIPAddrPlaceholder,
+		privateIPAddressPlaceholder,
 	).Build()
 
 	return containerConfig
@@ -489,15 +488,6 @@ func getEthNodeContainerConfig(
 	bootnodeEnr string,
 	staticFilesArtifactUUid services.FilesArtifactUUID,
 ) *services.ContainerConfig {
-
-	/*
-		//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-		staticFileNames := []string{static_files_consts.GenesisStaticFileName}
-		if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
-			return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
-		}
-
-	*/
 
 	entryPointArgs := []string{
 		"/bin/sh",
@@ -513,7 +503,7 @@ func getEthNodeContainerConfig(
 				"--http.port=%v "+
 				"--http.corsdomain '*' "+
 				"--http.vhosts=* "+
-				"--nat extip:"+privateIPAddrPlaceholder+" "+
+				"--nat extip:"+privateIPAddressPlaceholder+" "+
 				"--gcmode archive "+
 				"--syncmode full "+
 				"--port=%v "+
@@ -535,7 +525,7 @@ func getEthNodeContainerConfig(
 	).WithFiles(map[services.FilesArtifactUUID]string{
 		staticFilesArtifactUUid: staticFilesMountpointOnNodes,
 	}).WithPrivateIPAddrPlaceholder(
-		privateIPAddrPlaceholder,
+		privateIPAddressPlaceholder,
 	).Build()
 
 	return containerConfig
