@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"path"
 	"strconv"
@@ -57,6 +56,8 @@ const (
 	jsonOutputIndentStr = "  "
 
 	staticFilesMountpointOnNodes = "/files"
+
+	privateIPAddressPlaceholder = "KURTOSIS_PRIVATE_IP_ADDR_PLACEHOLDER"
 )
 
 var usedPorts = map[string]*services.PortSpec{
@@ -133,9 +134,9 @@ func startEthBootnode(
 	nodeInfo *ModuleAPIEthereumNodeInfo,
 	resultErr error,
 ) {
-	containerConfigSupplier := getBootnodeContainerConfigSupplier(staticFilesArtifactUuid)
+	getContainerConfig := getBootnodeContainerConfig(staticFilesArtifactUuid)
 
-	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, containerConfigSupplier)
+	serviceCtx, err := enclaveCtx.AddService(bootnodeServiceID, getContainerConfig)
 	if err != nil {
 		return nil, "", nil, stacktrace.Propagate(err, "An error occurred adding the Ethereum bootnode service")
 	}
@@ -189,9 +190,9 @@ func startEthNodes(
 	for i := 1; i <= childEthNodeQuantity; i++ {
 		serviceId := services.ServiceID(childEthNodeServiceIdPrefix + strconv.Itoa(i))
 
-		containerConfigSupplier := getEthNodeContainerConfigSupplier(bootnodeEnr, staticFilesArtifactUuid)
+		containerConfig := getEthNodeContainerConfig(bootnodeEnr, staticFilesArtifactUuid)
 
-		serviceCtx, err := enclaveCtx.AddService(serviceId, containerConfigSupplier)
+		serviceCtx, err := enclaveCtx.AddService(serviceId, containerConfig)
 		if err != nil {
 			return nil, nil, stacktrace.Propagate(err, "An error occurred adding Ethereum node with service ID '%v'", serviceId)
 		}
@@ -345,12 +346,6 @@ func verifyExpectedNumberPeers(serviceId services.ServiceID, serviceCtx *service
 	return nil
 }
 
-func getIPNet(ipAddr string) *net.IPNet {
-	cidr := ipAddr + subnetRange
-	_, ipNet, _ := net.ParseCIDR(cidr)
-	return ipNet
-}
-
 func sendRpcCall(privateIpAddr string, rpcJsonString string, targetStruct interface{}) error {
 	url := fmt.Sprintf("http://%v:%v", privateIpAddr, rpcPortNum)
 	var jsonByteArray = []byte(rpcJsonString)
@@ -433,124 +428,98 @@ func getStaticFileContent(serviceCtx *services.ServiceContext, staticFileName st
 	return fileContents, nil
 }
 
-func getBootnodeContainerConfigSupplier(staticFilesArtifactUuid services.FilesArtifactUUID) func(ipAddr string) (*services.ContainerConfig, error) {
-	containerConfigSupplier := func(ipAddr string) (*services.ContainerConfig, error) {
+func getBootnodeContainerConfig(staticFilesArtifactUuid services.FilesArtifactUUID) *services.ContainerConfig {
 
-		/*
-			//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-			if err := copyStaticFilesInServiceContainer(static_files_consts.StaticFilesNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
-				return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
-			}
-
-			keystoreFolder := filepath.Dir(sharedDirectory.GetChildPath(static_files_consts.SignerKeystoreFileName).GetAbsPathOnServiceContainer())
-		*/
-
-		ipNet := getIPNet(ipAddr)
-
-		entryPointArgs := []string{
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf(
-				"geth init --datadir data %v && "+
-					"geth "+
-					"--keystore %v "+
-					"--datadir data "+
-					"--networkid %v "+
-					"-http "+
-					"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
-					"--http.addr=0.0.0.0 "+
-					"--http.port=%v "+
-					"--http.corsdomain '*' "+
-					"--http.vhosts=* "+
-					"--nat extip:%v "+
-					"--port=%v "+
-					"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
-					"mine "+
-					"--allow-insecure-unlock "+
-					"--netrestrict %v "+
-					"--password %v",
-				getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
-				getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
-				ethNetworkId,
-				rpcPortNum,
-				ipAddr,
-				discoveryPortNum,
-				ipNet,
-				getMountedPathOnNodeContainer(static_files_consts.SignerAccountPasswordStaticFileName),
-			),
-		}
-
-		containerConfig := services.NewContainerConfigBuilder(
-			ethereumDockerImageName,
-		).WithUsedPorts(
-			usedPorts,
-		).WithEntrypointOverride(
-			entryPointArgs,
-		).WithFiles(map[services.FilesArtifactUUID]string{
-			staticFilesArtifactUuid: staticFilesMountpointOnNodes,
-		}).Build()
-
-		return containerConfig, nil
+	entryPointArgs := []string{
+		"/bin/sh",
+		"-c",
+		fmt.Sprintf(
+			"geth init --datadir data %v && "+
+				"geth "+
+				"--keystore %v "+
+				"--datadir data "+
+				"--networkid %v "+
+				"-http "+
+				"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
+				"--http.addr=0.0.0.0 "+
+				"--http.port=%v "+
+				"--http.corsdomain '*' "+
+				"--http.vhosts=* "+
+				"--nat extip:"+privateIPAddressPlaceholder+" "+
+				"--port=%v "+
+				"--unlock 0x14f6136b48b74b147926c9f24323d16c1e54a026 --"+
+				"mine "+
+				"--allow-insecure-unlock "+
+				"--password %v",
+			getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
+			getMountedPathOnNodeContainer(""), // The keystore arg expects a directory containing keys
+			ethNetworkId,
+			rpcPortNum,
+			discoveryPortNum,
+			getMountedPathOnNodeContainer(static_files_consts.SignerAccountPasswordStaticFileName),
+		),
 	}
-	return containerConfigSupplier
+
+	containerConfig := services.NewContainerConfigBuilder(
+		ethereumDockerImageName,
+	).WithUsedPorts(
+		usedPorts,
+	).WithEntrypointOverride(
+		entryPointArgs,
+	).WithFiles(map[services.FilesArtifactUUID]string{
+		staticFilesArtifactUuid: staticFilesMountpointOnNodes,
+	}).WithPrivateIPAddrPlaceholder(
+		privateIPAddressPlaceholder,
+	).Build()
+
+	return containerConfig
 }
 
-func getEthNodeContainerConfigSupplier(
+func getEthNodeContainerConfig(
 	bootnodeEnr string,
 	staticFilesArtifactUUid services.FilesArtifactUUID,
-) func(ipAddr string) (*services.ContainerConfig, error) {
-	containerConfigSupplier := func(ipAddr string) (*services.ContainerConfig, error) {
+) *services.ContainerConfig {
 
-		/*
-			//Copy static files from the static_files folder in testsuite container to the service's folder in the service container
-			staticFileNames := []string{static_files_consts.GenesisStaticFileName}
-			if err := copyStaticFilesInServiceContainer(staticFileNames, static_files_consts.StaticFilesDirpathOnTestsuiteContainer, sharedDirectory); err != nil {
-				return nil, stacktrace.Propagate(err, "An error occurred copying static files into the service's folder in the service container")
-			}
-
-		*/
-
-		entryPointArgs := []string{
-			"/bin/sh",
-			"-c",
-			fmt.Sprintf(
-				"geth init --datadir data %v && "+
-					"geth "+
-					"--datadir data "+
-					"--networkid %v "+
-					"-http "+
-					"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
-					"--http.addr=0.0.0.0 "+
-					"--http.port=%v "+
-					"--http.corsdomain '*' "+
-					"--http.vhosts=* "+
-					"--nat extip:%v "+
-					"--gcmode archive "+
-					"--syncmode full "+
-					"--port=%v "+
-					"--bootnodes %v",
-				getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
-				ethNetworkId,
-				rpcPortNum,
-				ipAddr,
-				discoveryPortNum,
-				bootnodeEnr,
-			),
-		}
-
-		containerConfig := services.NewContainerConfigBuilder(
-			ethereumDockerImageName,
-		).WithUsedPorts(
-			usedPorts,
-		).WithEntrypointOverride(
-			entryPointArgs,
-		).WithFiles(map[services.FilesArtifactUUID]string{
-			staticFilesArtifactUUid: staticFilesMountpointOnNodes,
-		}).Build()
-
-		return containerConfig, nil
+	entryPointArgs := []string{
+		"/bin/sh",
+		"-c",
+		fmt.Sprintf(
+			"geth init --datadir data %v && "+
+				"geth "+
+				"--datadir data "+
+				"--networkid %v "+
+				"-http "+
+				"--http.api admin,eth,net,web3,miner,personal,txpool,debug "+
+				"--http.addr=0.0.0.0 "+
+				"--http.port=%v "+
+				"--http.corsdomain '*' "+
+				"--http.vhosts=* "+
+				"--nat extip:"+privateIPAddressPlaceholder+" "+
+				"--gcmode archive "+
+				"--syncmode full "+
+				"--port=%v "+
+				"--bootnodes %v",
+			getMountedPathOnNodeContainer(static_files_consts.GenesisStaticFileName),
+			ethNetworkId,
+			rpcPortNum,
+			discoveryPortNum,
+			bootnodeEnr,
+		),
 	}
-	return containerConfigSupplier
+
+	containerConfig := services.NewContainerConfigBuilder(
+		ethereumDockerImageName,
+	).WithUsedPorts(
+		usedPorts,
+	).WithEntrypointOverride(
+		entryPointArgs,
+	).WithFiles(map[services.FilesArtifactUUID]string{
+		staticFilesArtifactUUid: staticFilesMountpointOnNodes,
+	}).WithPrivateIPAddrPlaceholder(
+		privateIPAddressPlaceholder,
+	).Build()
+
+	return containerConfig
 }
 
 func getMountedPathOnNodeContainer(staticFilename string) string {
@@ -559,32 +528,3 @@ func getMountedPathOnNodeContainer(staticFilename string) string {
 		staticFilename,
 	)
 }
-
-/*
-func copyStaticFilesInServiceContainer(staticFilesNames []string, staticFilesFolder string, sharedDirectory *services.SharedPath) error {
-	for _, staticFileName := range staticFilesNames {
-		if err := copyStaticFileInServiceContainer(staticFileName, staticFilesFolder, sharedDirectory); err != nil {
-			return stacktrace.Propagate(err, "An error occurred copying file with filename '%v' to service's folder in service container", staticFileName)
-		}
-	}
-	return nil
-}
-
-func copyStaticFileInServiceContainer(staticFileName string, staticFilesFolder string, sharedDirectory *services.SharedPath) error {
-	testStaticFileFilePath := sharedDirectory.GetChildPath(staticFileName)
-
-	testStaticFilepath := filepath.Join(staticFilesFolder, staticFileName)
-
-	testStaticFileContent, err := ioutil.ReadFile(testStaticFilepath)
-	if err != nil {
-		return stacktrace.Propagate(err, "An error occurred reading file from '%v'", testStaticFilepath)
-	}
-
-	err = ioutil.WriteFile(testStaticFileFilePath.GetAbsPathOnThisContainer(), testStaticFileContent, os.ModePerm)
-	if err != nil {
-		return stacktrace.Propagate(err, "An error occurred writing file '%v'", testStaticFileFilePath.GetAbsPathOnThisContainer())
-	}
-	return nil
-}
-
-*/
