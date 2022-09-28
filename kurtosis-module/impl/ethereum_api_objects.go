@@ -1,6 +1,6 @@
 package impl
 
-import "github.com/kurtosis-tech/kurtosis-core-api-lib/api/golang/lib/services"
+import "github.com/kurtosis-tech/kurtosis-sdk/api/golang/core/lib/services"
 
 // Struct representing object that will come back from the Ethereum cluster when getting node info
 type EthAPINodeInfoResponse struct {
